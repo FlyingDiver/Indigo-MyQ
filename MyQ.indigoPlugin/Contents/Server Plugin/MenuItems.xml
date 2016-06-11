@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!-- If your plugin wants to add menu items to it's submenu off the new Extensions menu,
+	 define them here. Each should have a unique menu id, a Name, and an Action. The last
+	 is a method name in your python file that will be called when the user selects that
+	 menu item. Note - nothing will be returned to the client, so if you need to communicate
+	 back to the user you can post information into the Event Log.
+-->
+<MenuItems>
+	<MenuItem id="toggleDebugging">
+		<Name>Toggle Debugging</Name>
+        <CallbackMethod>toggleDebugging</CallbackMethod>
+	</MenuItem>
+	<MenuItem id="titleSeparator1" type="separator" />
+    <MenuItem id="checkForUpdates">
+    	<Name>Check for Updates</Name>
+    	<CallbackMethod>checkForUpdates</CallbackMethod>
+    </MenuItem>
+    <MenuItem id="updatePlugin">
+    	<Name>Update Plugin</Name>
+    	<CallbackMethod>updatePlugin</CallbackMethod>
+    </MenuItem>
+    <MenuItem id="forceUpdate">
+        <Name>Force Update</Name>
+        <CallbackMethod>forceUpdate</CallbackMethod>
+    </MenuItem>
+</MenuItems>

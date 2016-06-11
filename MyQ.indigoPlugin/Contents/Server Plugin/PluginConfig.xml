@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<PluginConfig>
+	<SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
+	<Field id="myqLogin" type="textfield">
+		<Label>Login:</Label>
+	</Field>
+	<Field id="myqPassword" type="textfield" secure="true">
+		<Label>Password:</Label>
+	</Field>
+	<Field type="menu" id="openerBrand" defaultValue="chamberlain">
+		<Label>Brand:</Label>
+		<List>
+			<Option value="chamberlain">Chamberlain</Option>
+			<Option value="craftsman">Craftsman</Option>
+			<Option value="liftmaster">Liftmaster</Option>
+		</List>
+	</Field>
+	<Field id="statusFrequency" type="textfield" defaultValue="10">
+		<Label>Update device status frequency (minutes):</Label>
+	</Field>
+	<Field id="statusNote" type="label" fontSize="small" fontColor="darkgray">
+		<Label>The plugin will not update the devices if set to zero.</Label>
+	</Field>
+	<Field id="sep1" type="separator"/>
+	<Field id="updateFrequency" type="textfield" defaultValue="24">
+		<Label>Check for plugin update frequency (hours):</Label>
+	</Field>
+	<Field id="updateNote" type="label" fontSize="small" fontColor="darkgray">
+		<Label>The plugin will not check for updates if the frequency is set to zero.</Label>
+	</Field>
+	<Field id="sep2" type="separator"/>
+	<Field id="showDebugInfo" type="checkbox">
+		<Label>Enable debugging:</Label>
+		<Description>(not recommended)</Description>
+	</Field>
+</PluginConfig>
