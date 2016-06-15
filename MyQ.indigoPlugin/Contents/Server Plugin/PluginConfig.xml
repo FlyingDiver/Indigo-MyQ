@@ -19,7 +19,7 @@
 		<Label>Update device status frequency (minutes):</Label>
 	</Field>
 	<Field id="statusNote" type="label" fontSize="small" fontColor="darkgray">
-		<Label>The plugin will not update the devices if set to zero.</Label>
+		<Label>The plugin will not update the devices if set to zero.  Minimum is 5.</Label>
 	</Field>
 	<Field id="sep1" type="separator"/>
 	<Field id="updateFrequency" type="textfield" defaultValue="24">

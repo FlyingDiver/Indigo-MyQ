@@ -80,11 +80,11 @@ class Plugin(indigo.PluginBase):
 		self.updater.checkForUpdate()
 		self.updateFrequency = self.pluginPrefs.get('updateFrequency', 24)
 		if self.updateFrequency > 0:
-			self.next_update_check = time.time() + float(self.updateFrequency) * 60.0 * 60.0	# pref is in hours
+			self.next_update_check = time.time() + float(self.pluginPrefs.get('updateFrequency', 24)) * 60.0 * 60.0
 
 		self.statusFrequency = self.pluginPrefs.get('statusFrequency', 10)
 		if self.statusFrequency > 0:
-			self.next_status_check = time.time() + float(self.statusFrequency) * 60.0			# pref is in minutes
+			self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10)) * 60.0
 
 		self.brand = self.pluginPrefs.get('openerBrand', None)
 		if (self.brand):
@@ -105,14 +105,14 @@ class Plugin(indigo.PluginBase):
 				if self.updateFrequency > 0:
 					if time.time() > self.next_update_check:
 						self.updater.checkForUpdate()
-						self.next_update_check = time.time() + float(self.pluginPrefs['updateFrequency']) * 60.0 * 60.0
+						self.next_update_check = time.time() + float(self.pluginPrefs.get('updateFrequency', 24)) * 60.0 * 60.0
 
 				if self.statusFrequency > 0:
 					if time.time() > self.next_status_check:
 						self.getDoors()
-						self.next_update_check = time.time() + float(self.pluginPrefs['statusFrequency']) * 60.0
+						self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10)) * 60.0
 
-				self.sleep(1.0) 
+				self.sleep(60.0) 
 								
 		except self.stopThread:
 			pass
@@ -191,8 +191,8 @@ class Plugin(indigo.PluginBase):
 			errorDict['myqPassword'] = u"Enter your MyQ login password"
 		
 		statusFrequency = int(valuesDict['statusFrequency'])
-		if (statusFrequency < 5) or (updateFrequency > (24 * 60)):
-			errorDict['updateFrequency'] = u"Status frequency must be at least 5 min and less than 24 hours"
+		if (statusFrequency < 5) or (statusFrequency > (24 * 60)):
+			errorDict['statusFrequency'] = u"Status frequency must be at least 5 min and less than 24 hours"
 
 		updateFrequency = int(valuesDict['updateFrequency'])
 		if (updateFrequency < 0) or (updateFrequency > 24):
@@ -200,6 +200,7 @@ class Plugin(indigo.PluginBase):
 
 		if len(errorDict) > 0:
 			return (False, valuesDict, errorDict)
+
 		return (True, valuesDict)
 
 
