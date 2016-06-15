@@ -8,5 +8,23 @@
 				<Label>MyQ Device Number:</Label>
 			</Field>
 		</ConfigUI>
+		<States>
+			<State id="doorStatus">
+				<ValueType>
+					<List>
+						<Option value="open">Open</Option>
+						<Option value="closed">Closed</Option>
+						<Option value="stopped">Stopped</Option>
+						<Option value="opening">Opening</Option>
+						<Option value="closing">Closing</Option>
+					</List>
+				</ValueType>
+				<TriggerLabel>Door Status Changed</TriggerLabel>
+				<TriggerLabelPrefix>Door Status is</TriggerLabelPrefix>
+				<ControlPageLabel>Door Status</ControlPageLabel>
+				<ControlPageLabelPrefix>Door Status is</ControlPageLabelPrefix>
+			</State>
+		</States>
+		<UiDisplayStateId>doorStatus</UiDisplayStateId>
 	</Device>
 </Devices>

@@ -42,6 +42,8 @@ kCurDevVersCount = 0		# current version of plugin devices
 kDoorClosed = 0
 kDoorOpen 	= 1
 
+doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing"]
+
 ################################################################################
 class Plugin(indigo.PluginBase):
 					
@@ -263,7 +265,7 @@ class Plugin(indigo.PluginBase):
 		self.password = self.pluginPrefs.get('myqPassword', None)
 
 		url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
-		self.debugLog(u"myqLogin: url = %s" % url)
+#		self.debugLog(u"myqLogin: url = %s" % url)
 
 		try:
 			response = requests.get(url)
@@ -272,13 +274,13 @@ class Plugin(indigo.PluginBase):
 			return 
 			             
 		data = response.json()
-		self.debugLog(u"myqLogin: data = %s" % str(data))
+#		self.debugLog(u"myqLogin: data = %s" % str(data))
 		if data['ReturnCode'] != '0':
 			self.debugLog(u"myqLogin: Bad return code: " + data['ErrorMessage'])
 			return		
 		
 		self.securityToken = data['SecurityToken']
-		self.debugLog(u"myqLogin: Success, SecurityToken = %s" % self.securityToken)
+		self.debugLog(u"myqLogin: Success, Brand = %s, SecurityToken = %s" % (data[u'BrandName'], self.securityToken))
 	
 	
 	def getDoors(self):
@@ -286,7 +288,7 @@ class Plugin(indigo.PluginBase):
 		self.myqLogin()
 			
 		url =  self.service + '/api/UserDeviceDetails?appId=' + self.appID + '&securityToken=' + self.securityToken
-		self.debugLog(u"getDoors: url = %s" % url)
+#		self.debugLog(u"getDoors: url = %s" % url)
 		try:
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
@@ -294,7 +296,7 @@ class Plugin(indigo.PluginBase):
 			return 
 			             
 		data = response.json()
-		self.debugLog(u"getDoors: data = %s" % str(data))
+#		self.debugLog(u"getDoors: data = %s" % repr(data))
 		if data['ReturnCode'] != '0':
 			self.debugLog(u"getDoors: Bad return code: " + data['ErrorMessage'])
 			return		
@@ -302,18 +304,20 @@ class Plugin(indigo.PluginBase):
 		self.debugLog(u"getDoors: %d Devices" % len(data['Devices']))
 
 		for device in data['Devices']:
+			self.debugLog(u"getDoors: MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
+			
 			if device['MyQDeviceTypeId'] == 2:			# MyQDeviceTypeId Gateway == 1, Doors == 2, Structure == 10, Thermostat == 11
 				id = device['DeviceId']
 				name = self.getDoorName(id)
-				state, time = self.getDoorState(id)
-				self.debugLog(u"getDoors: %s (%s), state = %s, time = %s" % (name, id, state, time))
+				state = self.getDoorState(id)
+				self.debugLog(u"getDoors: %s (%s), state = %s" % (name, id, state))
 				
 				# look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
 				
 				iterator = indigo.devices.iter(filter="com.flyingdiver.indigoplugin.myq")
 				for dev in iterator:
 					if dev.address == id:
-						dev.onState = state
+						dev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
 						break
 				else:							# Python syntax weirdness - this else belongs to the for loop!
 					newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
@@ -321,16 +325,14 @@ class Plugin(indigo.PluginBase):
     					description = "Device auto-created by MyQ plugin from gateway information",
     					deviceTypeId='myqOpener',
     					name=name)
+					newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
 					self.debugLog(u'startup created new device: %s (%s)' % (newdev.name, newdev.address))
 		
-					
-			else:
-				self.debugLog(u"getDoors: Other MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
 
 	def getDoorName(self, doorID):
 
-		url =  self.service + '/Device/getDeviceAttribute?appId=' + APPID + '&securityToken=' + token + '&devId=' + id + '&name=desc'
-		self.debugLog(u"getDoorName: url = %s" % url)
+		url =  self.service + '/Device/getDeviceAttribute?appId=' + self.appID + '&securityToken=' + self.securityToken + '&devId=' + doorID + '&name=desc'
+#		self.debugLog(u"getDoorName: url = %s" % url)
 		try:
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
@@ -338,7 +340,7 @@ class Plugin(indigo.PluginBase):
 			return     
 
 		data = response.json()
-		self.debugLog(u"getDoorName: data = %s" % str(data))
+#		self.debugLog(u"getDoorName: data = %s" % str(data))
 		if data['ReturnCode'] != '0':
 			self.debugLog(u"getDoorName: Bad return code: " + data['ErrorMessage'])
 			return ""
@@ -347,8 +349,8 @@ class Plugin(indigo.PluginBase):
 
 	def getDoorState(self, doorID):
 
-		url =  self.service + '/Device/getDeviceAttribute?appId=' + APPID + '&securityToken=' + token + '&devId=' + id + '&name=doorstate'
-		self.debugLog(u"getDoorState: url = %s" % url)
+		url =  self.service + '/Device/getDeviceAttribute?appId=' + self.appID + '&securityToken=' + self.securityToken + '&devId=' + doorID + '&name=doorstate'
+#		self.debugLog(u"getDoorState: url = %s" % url)
 		try:
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
@@ -356,13 +358,11 @@ class Plugin(indigo.PluginBase):
 			return              
 
 		data = response.json()
-		self.debugLog(u"getDoorName: data = %s" % str(data))
+#		self.debugLog(u"getDoorState: data = %s" % str(data))
 		if data['ReturnCode'] != '0':
-			self.debugLog(u"getDoorName: Bad return code: " + data['ErrorMessage'])
-			return ("","")
-		timestamp = float(data['UpdatedTime'])
-		time = time.strftime("%a %d %b %Y %H:%M:%S", time.localtime(timestamp / 1000.0))
-		return (data['AttributeValue'], time)
+			self.debugLog(u"getDoorState: Bad return code: " + data['ErrorMessage'])
+			return ""
+		return (data['AttributeValue'])
 	
 
 	def moveDoor(self, device, state):

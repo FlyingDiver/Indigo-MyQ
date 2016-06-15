@@ -6,6 +6,11 @@
 	 back to the user you can post information into the Event Log.
 -->
 <MenuItems>
+	<MenuItem id="getDoors">
+		<Name>Update Door Status</Name>
+        <CallbackMethod>getDoors</CallbackMethod>
+	</MenuItem>
+	<MenuItem id="titleSeparator0" type="separator" />
 	<MenuItem id="toggleDebugging">
 		<Name>Toggle Debugging</Name>
         <CallbackMethod>toggleDebugging</CallbackMethod>
