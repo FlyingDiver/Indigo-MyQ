@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Devices>
-	<Device type="relay" id="myqOpener">
+	<Device type="custom" id="myqOpener">
 		<Name>MyQ Door Opener</Name>
 		<ConfigUI>
 			<SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>

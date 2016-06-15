@@ -1,4 +1,12 @@
 <?xml version="1.0"?>
 <Actions>
 	<SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
+	<Action id="openDoor" deviceFilter="self.myqOpener">
+		<Name>Open Door</Name>
+		<CallbackMethod>moveDoorAction</CallbackMethod>
+ 	</Action>
+	<Action id="closeDoor" deviceFilter="self.myqOpener">
+		<Name>Close Door</Name>
+		<CallbackMethod>moveDoorAction</CallbackMethod>
+	</Action>
 </Actions>
