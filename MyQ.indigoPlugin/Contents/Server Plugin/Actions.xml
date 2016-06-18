@@ -3,10 +3,18 @@
 	<SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
 	<Action id="openDoor" deviceFilter="self.myqOpener">
 		<Name>Open Door</Name>
-		<CallbackMethod>moveDoorAction</CallbackMethod>
+		<CallbackMethod>changeDeviceAction</CallbackMethod>
  	</Action>
 	<Action id="closeDoor" deviceFilter="self.myqOpener">
 		<Name>Close Door</Name>
-		<CallbackMethod>moveDoorAction</CallbackMethod>
+		<CallbackMethod>changeDeviceAction</CallbackMethod>
+	</Action>
+	<Action id="switchOn" deviceFilter="self.myqSwitch">
+		<Name>Switch On</Name>
+		<CallbackMethod>changeDeviceAction</CallbackMethod>
+ 	</Action>
+	<Action id="switchOff" deviceFilter="self.myqSwitch">
+		<Name>Switch Off</Name>
+		<CallbackMethod>changeDeviceAction</CallbackMethod>
 	</Action>
 </Actions>

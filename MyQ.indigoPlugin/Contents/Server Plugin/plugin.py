@@ -41,6 +41,8 @@ kCurDevVersCount = 0		# current version of plugin devices
 
 kDoorClosed = 0
 kDoorOpen 	= 1
+kswitchOff	= 0
+kswitchOn 	= 1
 
 doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing"]
 
@@ -77,20 +79,13 @@ class Plugin(indigo.PluginBase):
 		indigo.server.log(u"Starting MyQ")
 		
 		self.updater = GitHubPluginUpdater(self)
-		self.updater.checkForUpdate()
 		self.updateFrequency = self.pluginPrefs.get('updateFrequency', 24)
 		if self.updateFrequency > 0:
-			self.next_update_check = time.time() + float(self.pluginPrefs.get('updateFrequency', 24)) * 60.0 * 60.0
+			self.next_update_check = time.time() + float(self.pluginPrefs.get('updateFrequency', 24))
 
 		self.statusFrequency = self.pluginPrefs.get('statusFrequency', 10)
 		if self.statusFrequency > 0:
-			self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10)) * 60.0
-
-		self.brand = self.pluginPrefs.get('openerBrand', None)
-		if (self.brand):
-			self.service = self.apiData[self.brand]["service"]
-			self.appID = self.apiData[self.brand]["appID"]
-			self.getDoors()
+			self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10))
 
 
 	def shutdown(self):
@@ -109,10 +104,10 @@ class Plugin(indigo.PluginBase):
 
 				if self.statusFrequency > 0:
 					if time.time() > self.next_status_check:
-						self.getDoors()
+						self.getDevices()
 						self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10)) * 60.0
 
-				self.sleep(60.0) 
+				self.sleep(1.0) 
 								
 		except self.stopThread:
 			pass
@@ -138,24 +133,24 @@ class Plugin(indigo.PluginBase):
 	####################	
 
 
-	def deviceStartComm(self, device):
-		self.debugLog(u'Called deviceStartComm(self, device): %s (%s)' % (device.name, device.id))
+#	def deviceStartComm(self, device):
+#		self.debugLog(u'Called deviceStartComm(self, device): %s (%s)' % (device.name, device.id))
 						
-		instanceVers = int(device.pluginProps.get('devVersCount', 0))
-		self.debugLog(device.name + u": Device Current Version = " + str(instanceVers))
+#		instanceVers = int(device.pluginProps.get('devVersCount', 0))
+#		self.debugLog(device.name + u": Device Current Version = " + str(instanceVers))
 
-		if instanceVers >= kCurDevVersCount:
-			self.debugLog(device.name + u": Device Version is up to date")
+#		if instanceVers >= kCurDevVersCount:
+#			self.debugLog(device.name + u": Device Version is up to date")
 			
-		elif instanceVers < kCurDevVersCount:
-			newProps = device.pluginProps
+#		elif instanceVers < kCurDevVersCount:
+#			newProps = device.pluginProps
 
-		else:
-			self.errorLog(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)					
+#		else:
+#			self.errorLog(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)					
 		
 							
-	def deviceStopComm(self, device):
-		self.debugLog(u'Called deviceStopComm(self, device): %s (%s)' % (device.name, device.id))
+#	def deviceStopComm(self, device):
+#		self.debugLog(u'Called deviceStopComm(self, device): %s (%s)' % (device.name, device.id))
 		
  
 	########################################
@@ -211,37 +206,66 @@ class Plugin(indigo.PluginBase):
 				self.debugLog(u"Debug logging enabled")
 			else:
 				self.debugLog(u"Debug logging disabled")
+				
 
+#	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
+#		self.debugLog(u'Called validateDeviceConfigUi, valuesDict = %s, typeId = %s, devId = %s' % (str(valuesDict), typeId, devId))
+#		errorsDict = indigo.Dict()
 
-	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
-		self.debugLog(u'Called validateDeviceConfigUi, valuesDict = %s, typeId = %s, devId = %s' % (str(valuesDict), typeId, devId))
-		errorsDict = indigo.Dict()
-
-		if int(valuesDict["address"]) < 1:
-			errorDict['address'] = u"Invalid Device ID Number"
+#		if int(valuesDict["address"]) < 1:
+#			errorDict['address'] = u"Invalid Device ID Number"
 			
-		if len(errorsDict) > 0:
-			return (False, valuesDict, errorsDict)
-		return (True, valuesDict)
+#		if len(errorsDict) > 0:
+#			return (False, valuesDict, errorsDict)
+#		return (True, valuesDict)
 
 
-	def validateActionConfigUi(self, valuesDict, typeId, devId):
-		self.debugLog(u'Called validateActionConfigUi, valuesDict = %s, typeId = %s, devId = %s' % (str(valuesDict), typeId, devId))
-		errorsDict = indigo.Dict()
-		try:
-			pass
-		except:
-			pass
-		if len(errorsDict) > 0:
-			return (False, valuesDict, errorsDict)
-		return (True, valuesDict)
+#	def validateActionConfigUi(self, valuesDict, typeId, devId):
+#		self.debugLog(u'Called validateActionConfigUi, valuesDict = %s, typeId = %s, devId = %s' % (str(valuesDict), typeId, devId))
+#		errorsDict = indigo.Dict()
+#		try:
+#			pass
+#		except:
+#			pass
+#		if len(errorsDict) > 0:
+#			return (False, valuesDict, errorsDict)
+#		return (True, valuesDict)
 
 	########################################
+	
+	def actionControlDimmerRelay(self, action, dev):
+	
+		if action.deviceAction == indigo.kDeviceAction.TurnOn:
+			self.debugLog(u"actionControlDimmerRelay: \"%s\" On" % dev.name)
+			self.changeDevice(dev, kDoorOpen)
+
+		elif action.deviceAction == indigo.kDeviceAction.TurnOff:
+			self.debugLog(u"actionControlDimmerRelay: \"%s\" Off" % dev.name)
+			self.changeDevice(dev, kDoorClosed)
+			
+		elif action.deviceAction == indigo.kDeviceAction.Toggle:
+			self.debugLog(u"actionControlDimmerRelay: \"%s\" Toggle" % dev.name)
+			if dev.isOn:
+				self.changeDevice(dev, kDoorClosed)
+			else:	
+				self.changeDevice(dev, kDoorOpen)
+
+		elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
+			self.debugLog(u"actionControlDimmerRelay: \"%s\" Request Status" % dev.name)
+			self.getDevices()
+
+	########################################
+
 		
 	def myqLogin(self):
 	
 		self.username = self.pluginPrefs.get('myqLogin', None)
 		self.password = self.pluginPrefs.get('myqPassword', None)
+		self.brand = self.pluginPrefs.get('openerBrand', None)
+		if (self.brand):
+			self.service = self.apiData[self.brand]["service"]
+			self.appID = self.apiData[self.brand]["appID"]
+
 
 		url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
 
@@ -261,7 +285,7 @@ class Plugin(indigo.PluginBase):
 	
 	########################################
 	
-	def getDoors(self):
+	def getDevices(self):
 
 		self.myqLogin()
 			
@@ -269,89 +293,117 @@ class Plugin(indigo.PluginBase):
 		try:
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
-			self.debugLog(u"getDoors: RequestException: " + str(err))
+			self.debugLog(u"getDevices: RequestException: " + str(err))
 			return 
 			             
 		data = response.json()
 		if data['ReturnCode'] != '0':
-			self.debugLog(u"getDoors: Bad return code: " + data['ErrorMessage'])
+			self.debugLog(u"getDevices: Bad return code: " + data['ErrorMessage'])
 			return		
 
-		self.debugLog(u"getDoors: %d Devices" % len(data['Devices']))
+		self.debugLog(u"getDevices: %d Devices" % len(data['Devices']))
 
 		for device in data['Devices']:
-			self.debugLog(u"getDoors: MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
+			self.debugLog(u"getDevices: MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
 			
 			if device['MyQDeviceTypeId'] == 2:			# MyQDeviceTypeId Gateway == 1, Doors == 2, Structure == 10, Thermostat == 11
-				id = device['DeviceId']
-				name = self.getDoorName(id)
-				state = self.getDoorState(id)
-				self.debugLog(u"getDoors: %s (%s), state = %s" % (name, id, state))
+				myqID = device['DeviceId']
+				name = self.getDeviceName(myqID)
+				state = self.getDeviceState(myqID)
+				self.debugLog(u"getDevices: Opener = %s (%s), state = %i" % (name, myqID, state))
 				
 				# look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
 				
 				iterator = indigo.devices.iter(filter="com.flyingdiver.indigoplugin.myq")
 				for dev in iterator:
-					if dev.address == id:
-						dev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
+					if dev.address == myqID:
+						dev.updateStateOnServer(key="doorStatus", value=doorStateNames[state])
+						if state == 2:
+							dev.updateStateOnServer(key="onOffState", value=False)	# closed is off
+						else:
+							dev.updateStateOnServer(key="onOffState", value=True)	# anything other than closed is "on"
 						break
 				else:							# Python syntax weirdness - this else belongs to the for loop!
 					newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-    					address=id,
-    					description = "Device auto-created by MyQ plugin from gateway information",
+    					address=myqID,
+    					description = "Opener Device auto-created by MyQ plugin from gateway information",
     					deviceTypeId='myqOpener',
     					name=name)
 					newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
-					self.debugLog(u'startup created new device: %s (%s)' % (newdev.name, newdev.address))
+					self.debugLog(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 		
+			elif device['MyQDeviceTypeId'] == 3:			# Switch == 3?
+				myqID = device['DeviceId']
+				name = self.getDeviceName(myqID)
+				state = self.getDeviceState(myqID)
+				self.debugLog(u"getDevices: Switch = %s (%s), state = %i" % (name, myqID, state))
+			
+				# look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
+			
+				iterator = indigo.devices.iter(self)
+				for dev in iterator:
+					if dev.address == myqID:
+						break
+				else:							# Python syntax weirdness - this else belongs to the for loop!
+					newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
+						address=myqID,
+						description = "Switch Device auto-created by MyQ plugin from gateway information",
+						deviceTypeId='myqSwitch',
+						name=name)
+#					newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
+					self.debugLog(u'Created New Switch Device: %s (%s)' % (newdev.name, newdev.address))
 
-	def getDoorName(self, doorID):
+	def getDeviceName(self, doorID):
 
 		url =  self.service + '/Device/getDeviceAttribute?appId=' + self.appID + '&securityToken=' + self.securityToken + '&devId=' + doorID + '&name=desc'
 		try:
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
-			self.debugLog(u"getDoorName: RequestException: " + str(err))
+			self.debugLog(u"getDeviceName: RequestException: " + str(err))
 			return     
 
 		data = response.json()
 		if data['ReturnCode'] != '0':
-			self.debugLog(u"getDoorName: Bad return code: " + data['ErrorMessage'])
+			self.debugLog(u"getDeviceName: Bad return code: " + data['ErrorMessage'])
 			return ""
 			
 		return data['AttributeValue']
 
-	def getDoorState(self, doorID):
+	def getDeviceState(self, doorID):
 
 		url =  self.service + '/Device/getDeviceAttribute?appId=' + self.appID + '&securityToken=' + self.securityToken + '&devId=' + doorID + '&name=doorstate'
 		try:
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
-			self.debugLog(u"getDoorState: RequestException: " + str(err))
+			self.debugLog(u"getDeviceState: RequestException: " + str(err))
 			return              
 
 		data = response.json()
 		if data['ReturnCode'] != '0':
-			self.debugLog(u"getDoorState: Bad return code: " + data['ErrorMessage'])
-			return ""
-		return (data['AttributeValue'])
+			self.debugLog(u"getDeviceState: Bad return code: " + data['ErrorMessage'])
+			return 0
+		return int(data['AttributeValue'])
 	
 	########################################
 
-	def moveDoorAction(self, pluginAction):
+	def changeDeviceAction(self, pluginAction):
 
 		if pluginAction != None:
 			myqDevice = indigo.devices[pluginAction.deviceId]
 			myqActionId = pluginAction.pluginTypeId
 			if myqActionId == "openDoor":
-				self.moveDoor(dev, kDoorOpen)
+				self.changeDevice(myqDevice, kDoorOpen)
 			elif myqActionId == "closeDoor":
-				self.moveDoor(dev, kDoorClosed)
+				self.changeDevice(myqDevice, kDoorClosed)
+			elif myqActionId == "switchOn":
+				self.changeDevice(myqDevice, kSwitchOn)
+			elif myqActionId == "switchOff":
+				self.changeDevice(myqDevice, kSwitchOff)
 			else:
-				self.debugLog(u"moveDoorAction, unknown myqActionId = %s" % myqActionId)
+				self.debugLog(u"changeDeviceAction, unknown myqActionId = %s" % myqActionId)
 				
-	def moveDoor(self, device, state):
-		self.debugLog(u"moveDoor: state = %d" % state)
+	def changeDevice(self, device, state):
+		self.debugLog(u"changeDevice: %s, state = %d" % (device.name, state))
 
 		self.myqLogin()
 
@@ -363,16 +415,15 @@ class Plugin(indigo.PluginBase):
 		   'SecurityToken': self.securityToken
 		   }
 		url = self.service + '/api/deviceattribute/putdeviceattribute'
-		   
-		self.debugLog(u"moveDoor: url = %s" % url)
 		try:
 			response = requests.put(url, data=payload)
 		except requests.exceptions.RequestException as err:
-			self.debugLog(u"moveDoor: RequestException: " + str(err))
+			self.debugLog(u"changeDevice: RequestException: " + str(err))
 			return 
           
 		data = response.json()
 		if data['ReturnCode'] != '0':
-			self.debugLog(u"moveDoor: Bad return code: " + data['ErrorMessage'])
+			self.debugLog(u"changeDevice: Bad return code: " + data['ErrorMessage'])
 
-
+		# schedule an update to check on the movement
+		self.next_status_check = time.time() + 30.0

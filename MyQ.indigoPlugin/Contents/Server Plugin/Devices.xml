@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Devices>
-	<Device type="custom" id="myqOpener">
+	<Device type="relay" id="myqOpener">
 		<Name>MyQ Door Opener</Name>
 		<ConfigUI>
 			<SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
@@ -12,19 +12,27 @@
 			<State id="doorStatus">
 				<ValueType>
 					<List>
-						<Option value="open">Open</Option>
-						<Option value="closed">Closed</Option>
-						<Option value="stopped">Stopped</Option>
-						<Option value="opening">Opening</Option>
-						<Option value="closing">Closing</Option>
+						<Option value="Open">Open</Option>
+						<Option value="Closed">Closed</Option>
+						<Option value="Stopped">Stopped</Option>
+						<Option value="Opening">Opening</Option>
+						<Option value="Closing">Closing</Option>
 					</List>
 				</ValueType>
 				<TriggerLabel>Door Status Changed</TriggerLabel>
 				<TriggerLabelPrefix>Door Status is</TriggerLabelPrefix>
 				<ControlPageLabel>Door Status</ControlPageLabel>
-				<ControlPageLabelPrefix>Door Status is</ControlPageLabelPrefix>
-			</State>
+				<ControlPageLabelPrefix>Door Status is</ControlPageLabelPrefix>			</State>
 		</States>
 		<UiDisplayStateId>doorStatus</UiDisplayStateId>
+	</Device>
+	<Device type="relay" id="myqSwitch">
+		<Name>MyQ Switch</Name>
+		<ConfigUI>
+			<SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
+			<Field id="address" type="textfield">
+				<Label>MyQ Device Number:</Label>
+			</Field>
+		</ConfigUI>
 	</Device>
 </Devices>
