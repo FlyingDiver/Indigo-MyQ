@@ -335,12 +335,12 @@ class Plugin(indigo.PluginBase):
 			elif device['MyQDeviceTypeId'] == 3:			# Switch == 3?
 				myqID = device['DeviceId']
 				name = self.getDeviceName(myqID)
-				state = self.getDeviceState(myqID)
-				self.debugLog(u"getDevices: Switch = %s (%s), state = %i" % (name, myqID, state))
+#				state = self.getDeviceState(myqID)
+				self.debugLog(u"getDevices: Switch = %s (%s), data = %s" % (name, myqID, str(device)))
 			
 				# look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
 			
-				iterator = indigo.devices.iter(self)
+				iterator = indigo.devices.iter(filter="com.flyingdiver.indigoplugin.myq")
 				for dev in iterator:
 					if dev.address == myqID:
 						break
