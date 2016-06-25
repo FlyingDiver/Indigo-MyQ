@@ -79,13 +79,13 @@ class Plugin(indigo.PluginBase):
 		indigo.server.log(u"Starting MyQ")
 		
 		self.updater = GitHubPluginUpdater(self)
-		self.updateFrequency = self.pluginPrefs.get('updateFrequency', 24)
+		self.updateFrequency = int(self.pluginPrefs.get('updateFrequency', "24"))
 		if self.updateFrequency > 0:
-			self.next_update_check = time.time() + float(self.pluginPrefs.get('updateFrequency', 24))
+			self.next_update_check = time.time()
 
-		self.statusFrequency = self.pluginPrefs.get('statusFrequency', 10)
+		self.statusFrequency = int(self.pluginPrefs.get('statusFrequency', "10"))
 		if self.statusFrequency > 0:
-			self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10))
+			self.next_status_check = time.time()
 
 
 	def shutdown(self):
@@ -100,12 +100,12 @@ class Plugin(indigo.PluginBase):
 				if self.updateFrequency > 0:
 					if time.time() > self.next_update_check:
 						self.updater.checkForUpdate()
-						self.next_update_check = time.time() + float(self.pluginPrefs.get('updateFrequency', 24)) * 60.0 * 60.0
+						self.next_update_check = time.time() + float(self.updateFrequency) * 60.0 * 60.0
 
 				if self.statusFrequency > 0:
 					if time.time() > self.next_status_check:
 						self.getDevices()
-						self.next_status_check = time.time() + float(self.pluginPrefs.get('statusFrequency', 10)) * 60.0
+						self.next_status_check = time.time() + float(self.statusFrequency) * 60.0
 
 				self.sleep(1.0) 
 								
@@ -321,7 +321,7 @@ class Plugin(indigo.PluginBase):
 				iterator = indigo.devices.iter(filter="com.flyingdiver.indigoplugin.myq")
 				for dev in iterator:
 					if dev.address == myqID:
-						dev.updateStateOnServer(key="doorStatus", value=doorStateNames[state])
+						dev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
 						if state == 2:
 							dev.updateStateOnServer(key="onOffState", value=False)	# closed is off
 						else:
