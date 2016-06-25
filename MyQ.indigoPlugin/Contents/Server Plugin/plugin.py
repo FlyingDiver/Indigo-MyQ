@@ -44,7 +44,7 @@ kDoorOpen 	= 1
 kswitchOff	= 0
 kswitchOn 	= 1
 
-doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing"]
+doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected"]
 
 ################################################################################
 class Plugin(indigo.PluginBase):
@@ -310,7 +310,11 @@ class Plugin(indigo.PluginBase):
 				myqID = device['DeviceId']
 				name = self.getDeviceName(myqID)
 				state = self.getDeviceState(myqID)
-				self.debugLog(u"getDevices: Opener = %s (%s), state = %i" % (name, myqID, state))
+				if state > 7:
+					self.errorLog(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqID, state))
+					state = 0		# unknown high states					
+				else:
+					self.debugLog(u"getDevices: Opener %s (%s), state = %i" % (name, myqID, state))
 				
 				# look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
 				
@@ -335,8 +339,8 @@ class Plugin(indigo.PluginBase):
 			elif device['MyQDeviceTypeId'] == 3:			# Switch == 3?
 				myqID = device['DeviceId']
 				name = self.getDeviceName(myqID)
-#				state = self.getDeviceState(myqID)
-				self.debugLog(u"getDevices: Switch = %s (%s), data = %s" % (name, myqID, str(device)))
+				state = self.getDeviceState(myqID)
+#				self.debugLog(u"getDevices: Switch = %s (%s), data = %s" % (name, myqID, str(device)))
 			
 				# look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
 			
@@ -360,7 +364,7 @@ class Plugin(indigo.PluginBase):
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
 			self.debugLog(u"getDeviceName: RequestException: " + str(err))
-			return     
+			return "" 
 
 		data = response.json()
 		if data['ReturnCode'] != '0':
@@ -376,7 +380,7 @@ class Plugin(indigo.PluginBase):
 			response = requests.get(url)
 		except requests.exceptions.RequestException as err:
 			self.debugLog(u"getDeviceState: RequestException: " + str(err))
-			return              
+			return 0           
 
 		data = response.json()
 		if data['ReturnCode'] != '0':
