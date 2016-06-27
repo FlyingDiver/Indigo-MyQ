@@ -79,11 +79,11 @@ class Plugin(indigo.PluginBase):
 		indigo.server.log(u"Starting MyQ")
 		
 		self.updater = GitHubPluginUpdater(self)
-		self.updateFrequency = int(self.pluginPrefs.get('updateFrequency', "24"))
+		self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
 		if self.updateFrequency > 0:
 			self.next_update_check = time.time()
 
-		self.statusFrequency = int(self.pluginPrefs.get('statusFrequency', "10"))
+		self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
 		if self.statusFrequency > 0:
 			self.next_status_check = time.time()
 
@@ -100,12 +100,12 @@ class Plugin(indigo.PluginBase):
 				if self.updateFrequency > 0:
 					if time.time() > self.next_update_check:
 						self.updater.checkForUpdate()
-						self.next_update_check = time.time() + float(self.updateFrequency) * 60.0 * 60.0
+						self.next_update_check = time.time() + self.updateFrequency
 
 				if self.statusFrequency > 0:
 					if time.time() > self.next_status_check:
 						self.getDevices()
-						self.next_status_check = time.time() + float(self.statusFrequency) * 60.0
+						self.next_status_check = time.time() + self.statusFrequency
 
 				self.sleep(1.0) 
 								
@@ -306,7 +306,7 @@ class Plugin(indigo.PluginBase):
 		for device in data['Devices']:
 			self.debugLog(u"getDevices: MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
 			
-			if device['MyQDeviceTypeId'] == 2:			# MyQDeviceTypeId Gateway == 1, Doors == 2, Structure == 10, Thermostat == 11
+			if (device['MyQDeviceTypeId'] == 2) or (device['MyQDeviceTypeId'] == 5) or (device['MyQDeviceTypeId'] == 7):			# MyQDeviceTypeId Door == 2, Gate == 5, Door? == 7
 				myqID = device['DeviceId']
 				name = self.getDeviceName(myqID)
 				state = self.getDeviceState(myqID)

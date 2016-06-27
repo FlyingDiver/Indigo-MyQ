@@ -24,7 +24,8 @@
 				<TriggerLabel>Door Status Changed</TriggerLabel>
 				<TriggerLabelPrefix>Door Status is</TriggerLabelPrefix>
 				<ControlPageLabel>Door Status</ControlPageLabel>
-				<ControlPageLabelPrefix>Door Status is</ControlPageLabelPrefix>			</State>
+				<ControlPageLabelPrefix>Door Status is</ControlPageLabelPrefix>
+			</State>
 		</States>
 		<UiDisplayStateId>doorStatus</UiDisplayStateId>
 	</Device>
