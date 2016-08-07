@@ -253,9 +253,7 @@ class Plugin(indigo.PluginBase):
                 else:
                     self.logger.debug(u"getDevices: Opener %s (%s), state = %i" % (name, myqID, state))
 
-                # look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
-
-                iterator = indigo.devices.iter(filter="com.flyingdiver.indigoplugin.myq")
+                iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
                     if dev.address == myqID:
                         dev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
@@ -273,26 +271,24 @@ class Plugin(indigo.PluginBase):
                     newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
-            elif device['MyQDeviceTypeId'] == 3:            # Switch == 3?
-                myqID = device['DeviceId']
-                name = self.getDeviceName(myqID)
-                state = self.getDeviceState(myqID)
+#            elif device['MyQDeviceTypeId'] == 3:            # Switch == 3?
+#               myqID = device['DeviceId']
+#               name = self.getDeviceName(myqID)
+#               state = self.getDeviceState(myqID)
 #               self.logger.debug(u"getDevices: Switch = %s (%s), data = %s" % (name, myqID, str(device)))
-
-                # look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
-
-                iterator = indigo.devices.iter(filter="com.flyingdiver.indigoplugin.myq")
-                for dev in iterator:
-                    if dev.address == myqID:
-                        break
-                else:                           # Python syntax weirdness - this else belongs to the for loop!
-                    newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-                        address=myqID,
-                        description = "Switch Device auto-created by MyQ plugin from gateway information",
-                        deviceTypeId='myqSwitch',
-                        name=name)
+#
+#                iterator = indigo.devices.iter(filter="self")
+#                for dev in iterator:
+#                    if dev.address == myqID:
+#                        break
+#                else:                           # Python syntax weirdness - this else belongs to the for loop!
+#                    newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
+#                        address=myqID,
+#                        description = "Switch Device auto-created by MyQ plugin from gateway information",
+#                        deviceTypeId='myqSwitch',
+#                        name=name)
 #                   newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
-                    self.logger.debug(u'Created New Switch Device: %s (%s)' % (newdev.name, newdev.address))
+#                    self.logger.debug(u'Created New Switch Device: %s (%s)' % (newdev.name, newdev.address))
 
     def getDeviceName(self, doorID):
 

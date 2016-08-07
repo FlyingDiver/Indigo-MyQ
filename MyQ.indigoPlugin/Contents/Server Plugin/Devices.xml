@@ -29,6 +29,7 @@
         </States>
         <UiDisplayStateId>doorStatus</UiDisplayStateId>
     </Device>
+<!--
     <Device type="relay" id="myqSwitch">
         <Name>MyQ Switch</Name>
         <ConfigUI>
@@ -38,4 +39,5 @@
             </Field>
         </ConfigUI>
     </Device>
+-->
 </Devices>
