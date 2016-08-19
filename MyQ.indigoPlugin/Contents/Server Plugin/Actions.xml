@@ -9,14 +9,4 @@
         <Name>Close Door</Name>
         <CallbackMethod>changeDeviceAction</CallbackMethod>
     </Action>
-<!--
-    <Action id="switchOn" deviceFilter="self.myqSwitch">
-        <Name>Switch On</Name>
-        <CallbackMethod>changeDeviceAction</CallbackMethod>
-    </Action>
-    <Action id="switchOff" deviceFilter="self.myqSwitch">
-        <Name>Switch Off</Name>
-        <CallbackMethod>changeDeviceAction</CallbackMethod>
-    </Action>
--->
 </Actions>

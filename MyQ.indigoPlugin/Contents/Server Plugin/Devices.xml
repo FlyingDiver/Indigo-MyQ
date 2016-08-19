@@ -29,15 +29,4 @@
         </States>
         <UiDisplayStateId>doorStatus</UiDisplayStateId>
     </Device>
-<!--
-    <Device type="relay" id="myqSwitch">
-        <Name>MyQ Switch</Name>
-        <ConfigUI>
-            <SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
-            <Field id="address" type="textfield">
-                <Label>MyQ Device Number:</Label>
-            </Field>
-        </ConfigUI>
-    </Device>
--->
 </Devices>

@@ -18,8 +18,6 @@ kCurDevVersCount = 0        # current version of plugin devices
 
 kDoorClosed = 0
 kDoorOpen   = 1
-kswitchOff  = 0
-kswitchOn   = 1
 
 doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected"]
 
@@ -68,9 +66,6 @@ class Plugin(indigo.PluginBase):
                             },
                         }
 
-        self.triggers = { }
-
-
     def shutdown(self):
         indigo.server.log(u"Shutting down MyQ")
 
@@ -94,24 +89,6 @@ class Plugin(indigo.PluginBase):
 
         except self.stopThread:
             pass
-
-
-    ####################
-
-
-    def triggerStartProcessing(self, trigger):
-        self.logger.debug("Adding Trigger %s (%d) - %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
-        assert trigger.id not in self.triggers
-        self.triggers[trigger.id] = trigger
-
-    def triggerStopProcessing(self, trigger):
-        self.logger.debug("Removing Trigger %s (%d)" % (trigger.name, trigger.id))
-        assert trigger.id in self.triggers
-        del self.triggers[trigger.id]
-
-    def triggerCheck(self, device):
-        for triggerId, trigger in sorted(self.triggers.iteritems()):
-            self.logger.debug("\tChecking Trigger %s (%s), Type: %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
 
 
     ########################################
@@ -256,9 +233,12 @@ class Plugin(indigo.PluginBase):
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
                     if dev.address == myqID:
-                        dev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
+                        newState = doorStateNames[int(state)]
+                        if dev.states["doorStatus"] != newState:
+                            self.logger.info(u"MyQ Device %s is now %s" % (name, newState))
+                        dev.updateStateOnServer(key="doorStatus", value=newState)
                         if state == 2:
-                            dev.updateStateOnServer(key="onOffState", value=False)  # closed is off
+                           dev.updateStateOnServer(key="onOffState", value=False)  # closed is off/False
                         else:
                             dev.updateStateOnServer(key="onOffState", value=True)   # anything other than closed is "on"
                         break
@@ -271,24 +251,6 @@ class Plugin(indigo.PluginBase):
                     newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
-#            elif device['MyQDeviceTypeId'] == 3:            # Switch == 3?
-#               myqID = device['DeviceId']
-#               name = self.getDeviceName(myqID)
-#               state = self.getDeviceState(myqID)
-#               self.logger.debug(u"getDevices: Switch = %s (%s), data = %s" % (name, myqID, str(device)))
-#
-#                iterator = indigo.devices.iter(filter="self")
-#                for dev in iterator:
-#                    if dev.address == myqID:
-#                        break
-#                else:                           # Python syntax weirdness - this else belongs to the for loop!
-#                    newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-#                        address=myqID,
-#                        description = "Switch Device auto-created by MyQ plugin from gateway information",
-#                        deviceTypeId='myqSwitch',
-#                        name=name)
-#                   newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
-#                    self.logger.debug(u'Created New Switch Device: %s (%s)' % (newdev.name, newdev.address))
 
     def getDeviceName(self, doorID):
 
@@ -332,10 +294,6 @@ class Plugin(indigo.PluginBase):
                 self.changeDevice(myqDevice, kDoorOpen)
             elif myqActionId == "closeDoor":
                 self.changeDevice(myqDevice, kDoorClosed)
-            elif myqActionId == "switchOn":
-                self.changeDevice(myqDevice, kSwitchOn)
-            elif myqActionId == "switchOff":
-                self.changeDevice(myqDevice, kSwitchOff)
             else:
                 self.logger.debug(u"changeDeviceAction, unknown myqActionId = %s" % myqActionId)
 
@@ -364,3 +322,4 @@ class Plugin(indigo.PluginBase):
 
         # schedule an update to check on the movement
         self.next_status_check = time.time() + 30.0
+
