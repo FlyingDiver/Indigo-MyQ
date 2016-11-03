@@ -273,7 +273,7 @@ class Plugin(indigo.PluginBase):
         try:
             response = requests.get(url)
             self.logger.debug(u"myqLogin: response = " + str(response))
-            self.logger.debug(u"myqLogin: content = " + str(r.text))
+            self.logger.debug(u"myqLogin: content = " + str(response.text))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin: RequestException: " + str(err))
             return
