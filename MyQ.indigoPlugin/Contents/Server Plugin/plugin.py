@@ -273,14 +273,15 @@ class Plugin(indigo.PluginBase):
         try:
             response = requests.get(url)
             self.logger.debug(u"myqLogin: response = " + str(response))
+            self.logger.debug(u"myqLogin: content = " + str(r.text))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin: RequestException: " + str(err))
             return
 
         try:
             data = response.json()
-        except:
-            self.logger.debug(u"myqLogin: JSON Decode Error: " + str(response.json()))
+        except ValueError as err:
+            self.logger.debug(u"myqLogin: JSON Decode Error: " + str(err))
             return
 
         if data['ReturnCode'] != '0':
