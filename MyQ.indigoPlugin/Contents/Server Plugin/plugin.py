@@ -180,16 +180,23 @@ class Plugin(indigo.PluginBase):
             self.service = self.apiData[self.brand]["service"]
             self.appID = self.apiData[self.brand]["appID"]
 
+        self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password, self.brand, self.service, self.appID))
 
         url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
 
         try:
             response = requests.get(url)
+            self.logger.debug(u"myqLogin: response = " + str(response))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin: RequestException: " + str(err))
             return
 
-        data = response.json()
+        try:
+            data = response.json()
+        except:
+            self.logger.debug(u"myqLogin: JSON Decode Error: " + str(response.json()))
+            return
+
         if data['ReturnCode'] != '0':
             self.logger.debug(u"myqLogin: Bad return code: " + data['ErrorMessage'])
             return
