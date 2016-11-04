@@ -266,36 +266,47 @@ class Plugin(indigo.PluginBase):
             self.service = self.apiData[self.brand]["service"]
             self.appID = self.apiData[self.brand]["appID"]
 
-        self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password), self.brand, self.service, self.appID))
+#        self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password), self.brand, self.service, self.appID))
 
-        url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
+
+#        url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
+
+        payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
+        login_url = self.service + '/Membership/ValidateUserWithCulture'
 
         try:
-            response = requests.get(url)
+#            response = requests.get(url)
+            response = requests.get(login_url, params=payload)
             self.logger.debug(u"myqLogin: response = " + str(response))
             self.logger.debug(u"myqLogin: content = " + str(response.text))
         except requests.exceptions.RequestException as err:
-            self.logger.debug(u"myqLogin: RequestException: " + str(err))
+            self.logger.debug(u"myqLogin failure: RequestException: " + str(err))
+            self.securityToken = ""
             return
 
         try:
             data = response.json()
         except ValueError as err:
-            self.logger.debug(u"myqLogin: JSON Decode Error: " + str(err))
+            self.logger.debug(u"myqLogin failure: JSON Decode Error: " + str(err))
+            self.securityToken = ""
             return
 
         if data['ReturnCode'] != '0':
-            self.debugLog(u"myqLogin: Bad return code: " + data['ErrorMessage'])
+            self.debugLog(u"myqLogin failure: Bad return code: " + data['ErrorMessage'])
+            self.securityToken = ""
             return
 
         self.securityToken = data['SecurityToken']
-        self.debugLog(u"myqLogin: Success, Brand = %s, SecurityToken = %s" % (data[u'BrandName'], self.securityToken))
+        self.debugLog(u"myqLogin: Success, SecurityToken = %s" % (self.securityToken))
 
     ########################################
 
     def getDevices(self):
 
         self.myqLogin()
+
+        if not self.securityToken:
+            return
 
         url =  self.service + '/api/UserDeviceDetails?appId=' + self.appID + '&securityToken=' + self.securityToken
         try:
