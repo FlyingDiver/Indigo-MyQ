@@ -46,6 +46,8 @@ kswitchOn   = 1
 
 doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected"]
 
+userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"
+
 ################################################################################
 class Plugin(indigo.PluginBase):
 
@@ -58,16 +60,16 @@ class Plugin(indigo.PluginBase):
         self.debug = self.pluginPrefs.get(u"showDebugInfo", False)
         self.debugLog(u"Debugging enabled")
 
-#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
-
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
+#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
             "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
                                 "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
+#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
                         }
@@ -267,13 +269,17 @@ class Plugin(indigo.PluginBase):
         if (self.brand):
             self.service = self.apiData[self.brand]["service"]
             self.appID = self.apiData[self.brand]["appID"]
-        else:
-            self.errorLog(u"myqLogin: No brand identified")
+
+#        self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password), self.brand, self.service, self.appID))
+
+
+#        url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
 
         payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
         login_url = self.service + '/Membership/ValidateUserWithCulture'
         headers = {'User-Agent': userAgent}
         try:
+#            response = requests.get(url)
             response = requests.get(login_url, params=payload, headers=headers)
             self.logger.debug(u"myqLogin: response = " + str(response))
             self.logger.debug(u"myqLogin: content = " + str(response.text))
@@ -308,7 +314,7 @@ class Plugin(indigo.PluginBase):
 
         url =  self.service + '/api/UserDeviceDetails'
         params = {'appId':self.appID, 'securityToken':self.securityToken}
-        headers = {'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"}
+        headers = {'User-Agent': userAgent }
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
