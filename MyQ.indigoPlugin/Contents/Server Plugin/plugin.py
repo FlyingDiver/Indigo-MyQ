@@ -277,7 +277,7 @@ class Plugin(indigo.PluginBase):
 
         payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
         login_url = self.service + '/Membership/ValidateUserWithCulture'
-	headers = {'User-Agent': userAgent}
+        headers = {'User-Agent': userAgent}
         try:
 #            response = requests.get(url)
             response = requests.get(login_url, params=payload, headers=headers)
@@ -313,8 +313,8 @@ class Plugin(indigo.PluginBase):
             return
 
         url =  self.service + '/api/UserDeviceDetails'
-	params = {'appId':self.appID, 'securityToken':self.securityToken}
-	headers = {'User-Agent': userAgent }
+        params = {'appId':self.appID, 'securityToken':self.securityToken}
+        headers = {'User-Agent': userAgent }
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
@@ -385,8 +385,8 @@ class Plugin(indigo.PluginBase):
     def getDeviceName(self, doorID):
 
         url =  self.service + '/Device/getDeviceAttribute'
-	params = {'appId': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'desc'}
-	headers = {'User-Agent': userAgent}
+        params = {'appId': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'desc'}
+        headers = {'User-Agent': userAgent}
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
@@ -403,8 +403,8 @@ class Plugin(indigo.PluginBase):
     def getDeviceState(self, doorID):
 
         url =  self.service + '/Device/getDeviceAttribute'
-	params = {'appID': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'doorstate'}
-	headers = {'User-Agent': userAgent}
+        params = {'appID': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'doorstate'}
+        headers = {'User-Agent': userAgent}
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
@@ -448,7 +448,7 @@ class Plugin(indigo.PluginBase):
            'SecurityToken': self.securityToken
            }
         url = self.service + '/api/deviceattribute/putdeviceattribute'
-	headers = {'User-Agent': userAgent}
+        headers = {'User-Agent': userAgent}
         try:
             response = requests.put(url, data=payload, headers=headers)
         except requests.exceptions.RequestException as err:
