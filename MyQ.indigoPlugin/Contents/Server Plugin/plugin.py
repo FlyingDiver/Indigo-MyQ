@@ -21,6 +21,8 @@ kDoorOpen   = 1
 
 doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected"]
 
+userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"
+
 ################################################################################
 class Plugin(indigo.PluginBase):
 
@@ -182,23 +184,29 @@ class Plugin(indigo.PluginBase):
 
         self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password, self.brand, self.service, self.appID))
 
-        url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
+        payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
+        login_url = self.service + '/Membership/ValidateUserWithCulture'
+        headers = {'User-Agent': userAgent}
 
         try:
-            response = requests.get(url)
+            response = requests.get(login_url, params=payload, headers=headers)
             self.logger.debug(u"myqLogin: response = " + str(response))
+            self.logger.debug(u"myqLogin: content = " + str(response.text))
         except requests.exceptions.RequestException as err:
-            self.logger.debug(u"myqLogin: RequestException: " + str(err))
+            self.logger.debug(u"myqLogin failure: RequestException: " + str(err))
+            self.securityToken = ""
             return
 
         try:
             data = response.json()
         except:
-            self.logger.debug(u"myqLogin: JSON Decode Error: " + str(response.json()))
+            self.logger.debug(u"myqLogin failure: JSON Decode Error: " + str(err))
+            self.securityToken = ""
             return
 
         if data['ReturnCode'] != '0':
-            self.logger.debug(u"myqLogin: Bad return code: " + data['ErrorMessage'])
+            self.logger.debug(u"myqLogin failure: Bad return code: " + data['ErrorMessage'])
+            self.securityToken = ""
             return
 
         self.securityToken = data['SecurityToken']
@@ -210,9 +218,14 @@ class Plugin(indigo.PluginBase):
 
         self.myqLogin()
 
-        url =  self.service + '/api/UserDeviceDetails?appId=' + self.appID + '&securityToken=' + self.securityToken
+        if not self.securityToken:
+            return
+
+        url =  self.service + '/api/UserDeviceDetails'
+        params = {'appId':self.appID, 'securityToken':self.securityToken}
+        headers = {'User-Agent': userAgent }
         try:
-            response = requests.get(url)
+            response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"getDevices: RequestException: " + str(err))
             return
@@ -261,9 +274,11 @@ class Plugin(indigo.PluginBase):
 
     def getDeviceName(self, doorID):
 
-        url =  self.service + '/Device/getDeviceAttribute?appId=' + self.appID + '&securityToken=' + self.securityToken + '&devId=' + doorID + '&name=desc'
+        url =  self.service + '/Device/getDeviceAttribute'
+        params = {'appId': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'desc'}
+        headers = {'User-Agent': userAgent}
         try:
-            response = requests.get(url)
+            response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"getDeviceName: RequestException: " + str(err))
             return ""
@@ -277,9 +292,11 @@ class Plugin(indigo.PluginBase):
 
     def getDeviceState(self, doorID):
 
-        url =  self.service + '/Device/getDeviceAttribute?appId=' + self.appID + '&securityToken=' + self.securityToken + '&devId=' + doorID + '&name=doorstate'
+        url =  self.service + '/Device/getDeviceAttribute'
+        params = {'appID': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'doorstate'}
+        headers = {'User-Agent': userAgent}
         try:
-            response = requests.get(url)
+            response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"getDeviceState: RequestException: " + str(err))
             return 0
@@ -309,6 +326,7 @@ class Plugin(indigo.PluginBase):
 
         self.myqLogin()
 
+        url = self.service + '/api/deviceattribute/putdeviceattribute'
         payload = {
            'ApplicationId': self.appID,
            'AttributeName': 'desireddoorstate',
@@ -316,9 +334,9 @@ class Plugin(indigo.PluginBase):
            'AttributeValue': state,
            'SecurityToken': self.securityToken
            }
-        url = self.service + '/api/deviceattribute/putdeviceattribute'
+        headers = {'User-Agent': userAgent}
         try:
-            response = requests.put(url, data=payload)
+            response = requests.put(url, data=payload, headers=headers)
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"changeDevice: RequestException: " + str(err))
             return
