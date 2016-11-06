@@ -62,14 +62,12 @@ class Plugin(indigo.PluginBase):
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
             "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
                                 "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
-#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
                         }
@@ -270,16 +268,10 @@ class Plugin(indigo.PluginBase):
             self.service = self.apiData[self.brand]["service"]
             self.appID = self.apiData[self.brand]["appID"]
 
-#        self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password), self.brand, self.service, self.appID))
-
-
-#        url = self.service + '/Membership/ValidateUserWithCulture?appid=' + self.appID + '&securityToken=null&username=' + self.username + '&password=' + self.password + '&culture=en'
-
         payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
         login_url = self.service + '/Membership/ValidateUserWithCulture'
         headers = {'User-Agent': userAgent}
         try:
-#            response = requests.get(url)
             response = requests.get(login_url, params=payload, headers=headers)
             self.logger.debug(u"myqLogin: response = " + str(response))
             self.logger.debug(u"myqLogin: content = " + str(response.text))
