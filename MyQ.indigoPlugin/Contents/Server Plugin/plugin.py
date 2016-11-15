@@ -14,7 +14,7 @@ from requests.utils import quote
 
 from ghpu import GitHubPluginUpdater
 
-kCurDevVersCount = 0        # current version of plugin devices
+kCurDevVersCount = 1        # current version of plugin devices
 
 kDoorClosed = 0
 kDoorOpen   = 1
@@ -92,6 +92,21 @@ class Plugin(indigo.PluginBase):
         except self.stopThread:
             pass
 
+    def deviceStartComm(self, device):
+
+        instanceVers = int(device.pluginProps.get('devVersCount', 0))
+        if instanceVers >= kCurDevVersCount:
+            self.logger.debug(device.name + u": Device Version is up to date")
+        elif instanceVers < kCurDevVersCount:
+            newProps = device.pluginProps
+            newProps['IsLockSubType'] = True
+            newProps["devVersCount"] = kCurDevVersCount
+            device.replacePluginPropsOnServer(newProps)
+            self.logger.debug(u"Updated " + device.name + " to version " + str(kCurDevVersCount))
+
+        else:
+            self.logger.error(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)
+
 
     ########################################
     # Menu Methods
@@ -149,25 +164,33 @@ class Plugin(indigo.PluginBase):
 
     ########################################
 
-    def actionControlDimmerRelay(self, action, dev):
+    def actionControlDevice(self, action, dev):
 
-        if action.deviceAction == indigo.kDeviceAction.TurnOn:
-            self.logger.debug(u"actionControlDimmerRelay: \"%s\" On" % dev.name)
+        if action.deviceAction == indigo.kDeviceAction.Unlock:
+            self.logger.debug(u"actionControlDevice: \"%s\" Unlock" % dev.name)
+            self.changeDevice(dev, kDoorOpen)
+
+        elif action.deviceAction == indigo.kDeviceAction.Lock:
+            self.logger.debug(u"actionControlDevice: \"%s\" Lock" % dev.name)
+            self.changeDevice(dev, kDoorClosed)
+
+        elif action.deviceAction == indigo.kDeviceAction.TurnOn:
+            self.logger.debug(u"actionControlDevice: \"%s\" On" % dev.name)
             self.changeDevice(dev, kDoorOpen)
 
         elif action.deviceAction == indigo.kDeviceAction.TurnOff:
-            self.logger.debug(u"actionControlDimmerRelay: \"%s\" Off" % dev.name)
+            self.logger.debug(u"actionControlDevice: \"%s\" Off" % dev.name)
             self.changeDevice(dev, kDoorClosed)
 
         elif action.deviceAction == indigo.kDeviceAction.Toggle:
-            self.logger.debug(u"actionControlDimmerRelay: \"%s\" Toggle" % dev.name)
+            self.logger.debug(u"actionControlDevice: \"%s\" Toggle" % dev.name)
             if dev.isOn:
                 self.changeDevice(dev, kDoorClosed)
             else:
                 self.changeDevice(dev, kDoorOpen)
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
-            self.logger.debug(u"actionControlDimmerRelay: \"%s\" Request Status" % dev.name)
+            self.logger.debug(u"actionControlDevice: \"%s\" Request Status" % dev.name)
             self.getDevices()
 
     ########################################
@@ -181,8 +204,6 @@ class Plugin(indigo.PluginBase):
         if (self.brand):
             self.service = self.apiData[self.brand]["service"]
             self.appID = self.apiData[self.brand]["appID"]
-
-        self.logger.debug(u"myqLogin Info, username = %s, password length = %d, brand = %s, service = %s, appID = %s" % (self.username, len(self.password, self.brand, self.service, self.appID))
 
         payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
         login_url = self.service + '/Membership/ValidateUserWithCulture'
@@ -258,17 +279,24 @@ class Plugin(indigo.PluginBase):
                             self.logger.info(u"MyQ Device %s is now %s" % (name, newState))
                         dev.updateStateOnServer(key="doorStatus", value=newState)
                         if state == 2:
-                           dev.updateStateOnServer(key="onOffState", value=False)  # closed is off/False
+                           dev.updateStateOnServer(key="onOffState", value=True)  # closed is True
                         else:
-                            dev.updateStateOnServer(key="onOffState", value=True)   # anything other than closed is "on"
+                            dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "unlocked"
                         break
                 else:                           # Python syntax weirdness - this else belongs to the for loop!
+
+                    # New MyQ device found, create it and set current state
+
                     newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
                         address=myqID,
                         description = "Opener Device auto-created by MyQ plugin from gateway information",
                         deviceTypeId='myqOpener',
                         name=name)
                     newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
+                    if state == 2:
+                        dev.updateStateOnServer(key="onOffState", value=True)
+                    else:
+                        dev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
 
