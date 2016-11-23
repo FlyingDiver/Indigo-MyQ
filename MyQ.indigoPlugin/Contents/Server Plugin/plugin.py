@@ -59,13 +59,16 @@ class Plugin(indigo.PluginBase):
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+#                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
             "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
                                 "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
+#                                "appID" : "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-                            },
+#                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                           },
                         }
 
     def shutdown(self):
@@ -355,7 +358,7 @@ class Plugin(indigo.PluginBase):
 
         self.myqLogin()
 
-        url = self.service + '/api/v4/DeviceAttribute/PutDeviceAttribute'
+        url = self.service + '/api/deviceattribute/putdeviceattribute'
         payload = {
            'ApplicationId': self.appID,
            'AttributeName': 'desireddoorstate',
