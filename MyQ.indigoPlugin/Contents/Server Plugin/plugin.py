@@ -264,27 +264,29 @@ class Plugin(indigo.PluginBase):
             # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
 
             if (device['MyQDeviceTypeId'] == 2) or (device['MyQDeviceTypeId'] == 5) or (device['MyQDeviceTypeId'] == 7) or (device['MyQDeviceTypeId'] == 17):
-                myqID = device['ConnectServerDeviceId']
 
                 name = u"Unknown"
                 state = -1
+
                 for attr in device['Attributes']:
+                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
+
                     if attr[u'AttributeDisplayName'] == u'desc':
                         name = attr[u'Value']
                     elif attr[u'AttributeDisplayName'] == u'doorstate':
                         state = int(attr[u'Value'])
                 if state > 7:
-                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqID, state))
+                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, device['ConnectServerDeviceId'], state))
                     state = 0       # unknown high states
                 elif state == -1:
-                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqID))
+                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, device['ConnectServerDeviceId']))
                     state = 0       # unknown state
                 else:
                     self.logger.info(u"%s %s is %s" % (device['MyQDeviceTypeName'], name, doorStateNames[state]))
 
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
-                    if dev.address == myqID:
+                    if dev.address == device['ConnectServerDeviceId']:
                         newState = doorStateNames[state]
                         if dev.states["doorStatus"] != newState:
                             self.logger.info(u"MyQ Device %s is now %s" % (name, newState))
@@ -310,41 +312,29 @@ class Plugin(indigo.PluginBase):
                         newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
+            elif device['MyQDeviceTypeId'] == 3:			# Switch == 3?
+                for attr in device['Attributes']:
+                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
-#     def getDeviceName(self, doorID):
+# 				look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
 #
-#         url =  self.service + '/Device/getDeviceAttribute'
-#         params = {'appId': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'desc'}
-#         headers = {'User-Agent': userAgent}
-#         try:
-#             response = requests.get(url, params=params, headers=headers)
-#         except requests.exceptions.RequestException as err:
-#             self.logger.debug(u"getDeviceName: RequestException: " + str(err))
-#             return ""
-#
-#         data = response.json()
-#         if data['ReturnCode'] != '0':
-#             self.logger.debug(u"getDeviceName: Bad return code: " + data['ErrorMessage'])
-#             return ""
-#
-#         return data['AttributeValue']
-#
-#     def getDeviceState(self, doorID):
-#
-#         url =  self.service + '/Device/getDeviceAttribute'
-#         params = {'appID': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'doorstate'}
-#         headers = {'User-Agent': userAgent}
-#         try:
-#             response = requests.get(url, params=params, headers=headers)
-#         except requests.exceptions.RequestException as err:
-#             self.logger.debug(u"getDeviceState: RequestException: " + str(err))
-#             return 0
-#
-#         data = response.json()
-#         if data['ReturnCode'] != '0':
-#             self.logger.debug(u"getDeviceState: Bad return code: " + data['ErrorMessage'])
-#             return 0
-#         return int(data['AttributeValue'])
+# 				iterator = indigo.devices.iter(self)
+# 				for dev in iterator:
+# 					if dev.address == myqID:
+# 						break
+# 				else:							# Python syntax weirdness - this else belongs to the for loop!
+# 					newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
+# 						address=myqID,
+# 						description = "Switch Device auto-created by MyQ plugin from gateway information",
+# 						deviceTypeId='myqSwitch',
+# 						name=name)
+# 				newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
+# 					self.debugLog(u'Created New Switch Device: %s (%s)' % (newdev.name, newdev.address))
+
+            else:
+                for attr in device['Attributes']:
+                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
+
 
     ########################################
 
