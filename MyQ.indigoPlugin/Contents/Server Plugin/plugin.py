@@ -296,9 +296,9 @@ class Plugin(indigo.PluginBase):
                         name=name)
                     newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
                     if state == 2:
-                        dev.updateStateOnServer(key="onOffState", value=True)
+                        newdev.updateStateOnServer(key="onOffState", value=True)
                     else:
-                        dev.updateStateOnServer(key="onOffState", value=False)
+                        newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
 
