@@ -8,6 +8,10 @@
                 <Label>MyQ Device Number:</Label>
             </Field>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
+			<Field id="sensor" type="menu" >
+				<Label>Sensor Device:</Label>
+				<List class="indigo.devices" filter="indigo.sensor" />
+			</Field>
         </ConfigUI>
         <States>
             <State id="doorStatus">

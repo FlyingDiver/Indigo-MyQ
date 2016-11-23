@@ -53,8 +53,11 @@ class Plugin(indigo.PluginBase):
         self.next_update_check = time.time()
 
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
-        self.logger.debug(u"statusFrequency = " + str(self.updateFrequency))
+        self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
         self.next_status_check = time.time()
+
+        # Watch for changes to sensors associated with an opener
+        indigo.devices.subscribeToChanges()
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
@@ -70,6 +73,7 @@ class Plugin(indigo.PluginBase):
 #                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                            },
                         }
+
 
     def shutdown(self):
         indigo.server.log(u"Shutting down MyQ")
@@ -106,9 +110,11 @@ class Plugin(indigo.PluginBase):
             newProps["devVersCount"] = kCurDevVersCount
             device.replacePluginPropsOnServer(newProps)
             self.logger.debug(u"Updated " + device.name + " to version " + str(kCurDevVersCount))
-
         else:
             self.logger.error(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)
+
+#        self.logger.debug(device.name + " started: " + str(device))
+
 
 
     ########################################
@@ -164,6 +170,32 @@ class Plugin(indigo.PluginBase):
             self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
             self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
             self.next_update_check = time.time()
+
+    ########################################
+
+    def deviceDeleted(self, dev):
+        indigo.PluginBase.deviceDeleted(self, dev)
+#        self.logger.debug(u"A device (%s,%s) has been deleted." % (dev.name, str(dev.id)))
+
+        iterator = indigo.devices.iter(filter="self")
+        for myDevice in iterator:
+            if dev.id == myDevice.pluginProps["sensor"]:
+                self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
+
+
+    def deviceUpdated(self, origDev, newDev):
+        indigo.PluginBase.deviceUpdated(self, origDev, newDev)
+#        self.logger.debug(u"A device (%s,%s) has been updated." % (origDev.name, str(origDev.id)))
+
+        iterator = indigo.devices.iter(filter="self")
+        for myDevice in iterator:
+#            self.logger.debug(u"Looking for match with %s." % (myDevice.pluginProps["sensor"]))
+            if origDev.id == int(myDevice.pluginProps["sensor"]):
+                if origDev.state != newDev.state:
+                    self.logger.info(u"A device (%s) that's associated with a MyQ device has changed: %s" % (origDev.name, str(newDev.state)))
+                else:
+                    self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
+
 
     ########################################
 
@@ -233,7 +265,6 @@ class Plugin(indigo.PluginBase):
             return
 
         self.securityToken = data['SecurityToken']
-        self.logger.debug(u"myqLogin: Success")
 
     ########################################
 
