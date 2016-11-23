@@ -58,13 +58,13 @@ class Plugin(indigo.PluginBase):
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
+                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
             "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
                                 "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi"
+                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
                         }
 
@@ -261,7 +261,9 @@ class Plugin(indigo.PluginBase):
         for device in data['Devices']:
             self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
 
-            if (device['MyQDeviceTypeId'] == 2) or (device['MyQDeviceTypeId'] == 5) or (device['MyQDeviceTypeId'] == 7):            # MyQDeviceTypeId Door == 2, Gate == 5, Door? == 7
+            # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
+
+            if (device['MyQDeviceTypeId'] == 2) or (device['MyQDeviceTypeId'] == 5) or (device['MyQDeviceTypeId'] == 7) or (device['MyQDeviceTypeId'] == 17):
                 myqID = device['DeviceId']
                 name = self.getDeviceName(myqID)
                 state = self.getDeviceState(myqID)
