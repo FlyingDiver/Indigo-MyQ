@@ -214,8 +214,7 @@ class Plugin(indigo.PluginBase):
 
         try:
             response = requests.get(login_url, params=payload, headers=headers)
-            self.logger.debug(u"myqLogin: response = " + str(response))
-            self.logger.debug(u"myqLogin: content = " + str(response.text))
+            self.logger.debug(u"myqLogin: " + str(response.text))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin failure: RequestException: " + str(err))
             self.securityToken = ""
@@ -234,7 +233,7 @@ class Plugin(indigo.PluginBase):
             return
 
         self.securityToken = data['SecurityToken']
-        self.logger.debug(u"myqLogin: Success, Brand = %s, SecurityToken = %s" % (data[u'BrandName'], self.securityToken))
+        self.logger.debug(u"myqLogin: Success")
 
     ########################################
 
