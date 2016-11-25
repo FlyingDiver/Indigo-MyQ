@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Actions>
-    <SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
+    <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
     <Action id="openDoor" deviceFilter="self.myqOpener">
         <Name>Open Door</Name>
         <CallbackMethod>changeDeviceAction</CallbackMethod>

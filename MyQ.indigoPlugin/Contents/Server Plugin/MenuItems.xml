@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <MenuItems>
+    <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
     <MenuItem id="getDevices">
         <Name>Update Device Status</Name>
         <CallbackMethod>getDevices</CallbackMethod>

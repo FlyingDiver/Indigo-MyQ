@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <Events>
-    <SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
+    <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
+    <Event id="myqDoorSync">
+        <Name>MyQ Door Status Mismatch</Name>
+    </Event>
 </Events>
-
-

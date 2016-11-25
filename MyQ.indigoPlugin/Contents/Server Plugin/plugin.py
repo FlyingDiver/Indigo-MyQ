@@ -47,6 +47,8 @@ class Plugin(indigo.PluginBase):
     def startup(self):
         indigo.server.log(u"Starting MyQ")
 
+        self.triggers = { }
+
         self.updater = GitHubPluginUpdater(self)
         self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
         self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
@@ -100,7 +102,7 @@ class Plugin(indigo.PluginBase):
                         self.getDevices()
                         self.next_status_check = time.time() + self.statusFrequency
 
-                self.sleep(1.0)
+                self.sleep(60.0)
 
         except self.stopThread:
             pass
@@ -119,7 +121,39 @@ class Plugin(indigo.PluginBase):
         else:
             self.logger.error(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)
 
-#        self.logger.debug(device.name + " started: " + str(device))
+    def triggerStartProcessing(self, trigger):
+        self.logger.debug("Adding Trigger %s (%d) - %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+        assert trigger.id not in self.triggers
+        self.triggers[trigger.id] = trigger
+
+    def triggerStopProcessing(self, trigger):
+        self.logger.debug("Removing Trigger %s (%d)" % (trigger.name, trigger.id))
+        assert trigger.id in self.triggers
+        del self.triggers[trigger.id]
+
+    def triggerCheck(self, device):
+        try:
+            sensor = indigo.devices[int(device.pluginProps["sensor"])]
+        except:
+            self.logger.warning("Trigger %s (%d) invalid - no linked sensor for MyQ device %s" % (trigger.name, trigger.id, device.name))
+            return
+
+        for triggerId, trigger in sorted(self.triggers.iteritems()):
+            self.logger.debug("Checking Trigger %s (%s), Type: %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+            self.logger.debug("\tmyqDoorSync:  %s is %s, linked sensor %s is %s" % (device.name, str(device.onState), sensor.name, str(sensor.onState)))
+
+            if device.onState == sensor.onState:        # these values are supposed to be opposite due to difference between sensor and lock devices
+                indigo.trigger.execute(trigger)         # so execute the out of sync trigger when they're not opposite
+
+
+#             if trigger.pluginTypeId == "myqDoorSync":
+#                 self.logger.debug("\tmyqDoorSync:  %s is %s, linked sensor %s is %s" % (device.name, str(device.onState), sensor.name, str(sensor.onState)))
+#
+#                 if device.onState == sensor.onState:        # these values are supposed to be opposite due to difference between sensor and lock devices
+#                     indigo.trigger.execute(trigger)         # so execute the out of sync trigger when they're not opposite
+#
+#             else:
+#                 self.logger.debug("\tUnknown Trigger Type %s (%d), %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
 
 
 
@@ -210,6 +244,7 @@ class Plugin(indigo.PluginBase):
                     myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
                 else:
                     myqDevice.updateStateOnServer(key="onOffState", value=True)   # sensor "Off" means the door's closed, which is True for lock type devices (locked)
+                self.triggerCheck(newDev)
 
                 return
 
@@ -344,6 +379,7 @@ class Plugin(indigo.PluginBase):
                            dev.updateStateOnServer(key="onOffState", value=True)  # closed is True
                         else:
                             dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "unlocked"
+                        self.triggerCheck(dev)
                         break
                 else:                           # Python syntax weirdness - this else belongs to the for loop!
 
@@ -361,7 +397,7 @@ class Plugin(indigo.PluginBase):
                         newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
-            elif device['MyQDeviceTypeId'] == 3:			# Light Switch?
+            elif device['MyQDeviceTypeId'] == 3:            # Light Switch?
                 for attr in device['Attributes']:
                     self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
@@ -409,5 +445,5 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"changeDevice: Bad return code: " + data['ErrorMessage'])
 
         # schedule an update to check on the movement
-        self.next_status_check = time.time() + 30.0
+        self.next_status_check = time.time() + float(self.pluginPrefs.get('statusDelay', "30"))
 

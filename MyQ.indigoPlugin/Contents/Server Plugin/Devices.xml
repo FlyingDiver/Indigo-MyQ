@@ -3,7 +3,7 @@
     <Device type="relay" id="myqOpener">
         <Name>MyQ Door Opener</Name>
         <ConfigUI>
-            <SupportURL>http://forums.indigodomo.com/viewforum.php?f=177</SupportURL>
+            <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
             <Field id="address" type="textfield">
                 <Label>MyQ Device Number:</Label>
