@@ -60,18 +60,24 @@ class Plugin(indigo.PluginBase):
         indigo.devices.subscribeToChanges()
 
         self.apiData = {
+#            "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
+#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+#                            },
+#            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
+#                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
+#                            },
+#            "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
+#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+#                            },
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-#                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
             "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
-                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
-#                                "appID" : "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
+                                "appID" : "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-#                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
-                           },
+                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                            },
                         }
 
 
@@ -145,7 +151,7 @@ class Plugin(indigo.PluginBase):
             errorDict['myqPassword'] = u"Enter your MyQ login password"
 
         statusFrequency = int(valuesDict['statusFrequency'])
-        if (statusFrequency < 5) or (statusFrequency > (24 * 60)):
+        if (0 < statusFrequency < 5) or (statusFrequency > (24 * 60)):
             errorDict['statusFrequency'] = u"Status frequency must be at least 5 min and less than 24 hours"
 
         updateFrequency = int(valuesDict['updateFrequency'])
@@ -170,6 +176,10 @@ class Plugin(indigo.PluginBase):
             self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
             self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
             self.next_update_check = time.time()
+
+            self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
+            self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
+            self.next_status_check = time.time()
 
     ########################################
 
@@ -351,7 +361,7 @@ class Plugin(indigo.PluginBase):
                         newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
-            elif device['MyQDeviceTypeId'] == 3:			# Switch == 3?
+            elif device['MyQDeviceTypeId'] == 3:			# Light Switch?
                 for attr in device['Attributes']:
                     self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
