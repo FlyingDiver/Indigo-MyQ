@@ -13,9 +13,6 @@
             <Option value="chamberlain">Chamberlain</Option>
             <Option value="craftsman">Craftsman</Option>
             <Option value="liftmaster">Liftmaster</Option>
-            <Option value="chamberlain4">Chamberlain v4</Option>
-            <Option value="craftsman4">Craftsman v4</Option>
-            <Option value="liftmaster4">Liftmaster v4</Option>
         </List>
     </Field>
     <Field id="statusFrequency" type="textfield" defaultValue="10">

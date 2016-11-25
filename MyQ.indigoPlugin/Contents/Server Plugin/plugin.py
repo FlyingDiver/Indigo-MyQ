@@ -57,22 +57,22 @@ class Plugin(indigo.PluginBase):
         self.next_status_check = time.time()
 
         self.apiData = {
+#            "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
+#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+#                            },
+#            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
+#                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
+#                            },
+#            "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
+#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+#                            },
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-                            },
-            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
-                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
-                            },
-            "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-                            },
-            "chamberlain4" : {   "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
-            "craftsman4" :   {   "service" : "https://craftexternal.myqdevice.com",
+            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
                                 "appID" : "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
                             },
-            "liftmaster4" : {    "service" : "https://myqexternal.myqdevice.com",
+            "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
                         }
@@ -219,7 +219,7 @@ class Plugin(indigo.PluginBase):
             self.appID = self.apiData[self.brand]["appID"]
 
         payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
-        login_url = self.service + '/Membership/ValidateUserWithCulture'
+        login_url = self.service + '/api/user/validatewithculture'
         headers = {'User-Agent': userAgent}
 
         try:
@@ -243,7 +243,7 @@ class Plugin(indigo.PluginBase):
             return
 
         self.securityToken = data['SecurityToken']
-        self.logger.debug(u"myqLogin: Success, Brand = %s, SecurityToken = %s" % (data[u'BrandName'], self.securityToken))
+        self.logger.debug(u"myqLogin: Success")
 
     ########################################
 
@@ -254,7 +254,7 @@ class Plugin(indigo.PluginBase):
         if not self.securityToken:
             return
 
-        url =  self.service + '/api/UserDeviceDetails'
+        url =  self.service + '/api/v4/userdevicedetails/get'
         params = {'appId':self.appID, 'securityToken':self.securityToken}
         headers = {'User-Agent': userAgent }
         try:
@@ -271,24 +271,35 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"getDevices: %d Devices" % len(data['Devices']))
 
         for device in data['Devices']:
-            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['DeviceId']))
+            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, MyQDeviceTypeName = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['MyQDeviceTypeName'], device['ConnectServerDeviceId']))
 
             # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
 
             if (device['MyQDeviceTypeId'] == 2) or (device['MyQDeviceTypeId'] == 5) or (device['MyQDeviceTypeId'] == 7) or (device['MyQDeviceTypeId'] == 17):
-                myqID = device['DeviceId']
-                name = self.getDeviceName(myqID)
-                state = self.getDeviceState(myqID)
+
+                name = u"Unknown"
+                state = -1
+
+                for attr in device['Attributes']:
+                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
+
+                    if attr[u'AttributeDisplayName'] == u'desc':
+                        name = attr[u'Value']
+                    elif attr[u'AttributeDisplayName'] == u'doorstate':
+                        state = int(attr[u'Value'])
                 if state > 7:
-                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqID, state))
+                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, device['ConnectServerDeviceId'], state))
                     state = 0       # unknown high states
+                elif state == -1:
+                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, device['ConnectServerDeviceId']))
+                    state = 0       # unknown state
                 else:
-                    self.logger.debug(u"getDevices: Opener %s (%s), state = %i" % (name, myqID, state))
+                    self.logger.info(u"%s %s is %s" % (device['MyQDeviceTypeName'], name, doorStateNames[state]))
 
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
-                    if dev.address == myqID:
-                        newState = doorStateNames[int(state)]
+                    if dev.address == device['ConnectServerDeviceId']:
+                        newState = doorStateNames[state]
                         if dev.states["doorStatus"] != newState:
                             self.logger.info(u"MyQ Device %s is now %s" % (name, newState))
                         dev.updateStateOnServer(key="doorStatus", value=newState)
@@ -306,48 +317,21 @@ class Plugin(indigo.PluginBase):
                         description = "Opener Device auto-created by MyQ plugin from gateway information",
                         deviceTypeId='myqOpener',
                         name=name)
-                    newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
+                    newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[state])
                     if state == 2:
                         newdev.updateStateOnServer(key="onOffState", value=True)
                     else:
                         newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
+            elif device['MyQDeviceTypeId'] == 3:			# Light Switch?
+                for attr in device['Attributes']:
+                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
-    def getDeviceName(self, doorID):
+            else:
+                for attr in device['Attributes']:
+                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
-        url =  self.service + '/Device/getDeviceAttribute'
-        params = {'appId': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'desc'}
-        headers = {'User-Agent': userAgent}
-        try:
-            response = requests.get(url, params=params, headers=headers)
-        except requests.exceptions.RequestException as err:
-            self.logger.debug(u"getDeviceName: RequestException: " + str(err))
-            return ""
-
-        data = response.json()
-        if data['ReturnCode'] != '0':
-            self.logger.debug(u"getDeviceName: Bad return code: " + data['ErrorMessage'])
-            return ""
-
-        return data['AttributeValue']
-
-    def getDeviceState(self, doorID):
-
-        url =  self.service + '/Device/getDeviceAttribute'
-        params = {'appID': self.appID, 'securityToken': self.securityToken, 'devId': doorID, 'name':'doorstate'}
-        headers = {'User-Agent': userAgent}
-        try:
-            response = requests.get(url, params=params, headers=headers)
-        except requests.exceptions.RequestException as err:
-            self.logger.debug(u"getDeviceState: RequestException: " + str(err))
-            return 0
-
-        data = response.json()
-        if data['ReturnCode'] != '0':
-            self.logger.debug(u"getDeviceState: Bad return code: " + data['ErrorMessage'])
-            return 0
-        return int(data['AttributeValue'])
 
     ########################################
 
