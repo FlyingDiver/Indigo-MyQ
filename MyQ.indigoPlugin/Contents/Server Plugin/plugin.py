@@ -66,6 +66,15 @@ class Plugin(indigo.PluginBase):
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
+            "chamberlain4" : {   "service" : "https://myqexternal.myqdevice.com",
+                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                            },
+            "craftsman4" :   {   "service" : "https://craftexternal.myqdevice.com",
+                                "appID" : "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
+                            },
+            "liftmaster4" : {    "service" : "https://myqexternal.myqdevice.com",
+                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                            },
                         }
 
     def shutdown(self):
