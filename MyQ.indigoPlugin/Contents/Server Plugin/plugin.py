@@ -175,27 +175,33 @@ class Plugin(indigo.PluginBase):
 
     def deviceDeleted(self, dev):
         indigo.PluginBase.deviceDeleted(self, dev)
-#        self.logger.debug(u"A device (%s,%s) has been deleted." % (dev.name, str(dev.id)))
 
         iterator = indigo.devices.iter(filter="self")
         for myDevice in iterator:
             if dev.id == myDevice.pluginProps["sensor"]:
                 self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
+                newProps = myDevice.pluginProps
+                newProps["sensor"] = ""
+                myDevice.replacePluginPropsOnServer(newProps)
 
 
     def deviceUpdated(self, origDev, newDev):
         indigo.PluginBase.deviceUpdated(self, origDev, newDev)
-#        self.logger.debug(u"A device (%s,%s) has been updated." % (origDev.name, str(origDev.id)))
 
         iterator = indigo.devices.iter(filter="self")
-        for myDevice in iterator:
-#            self.logger.debug(u"Looking for match with %s." % (myDevice.pluginProps["sensor"]))
-            if origDev.id == int(myDevice.pluginProps["sensor"]):
-                if origDev.state != newDev.state:
-                    self.logger.info(u"A device (%s) that's associated with a MyQ device has changed: %s" % (origDev.name, str(newDev.state)))
-                else:
+        for myqDevice in iterator:
+            if origDev.id == int(myqDevice.pluginProps["sensor"]):
+                if origDev.onState == newDev.onState:
                     self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
+                    return
 
+                self.logger.debug(u"deviceUpdated: %s has changed state: %s" % (origDev.name, str(newDev.onState)))
+                if newDev.onState:
+                    myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
+                else:
+                    myqDevice.updateStateOnServer(key="onOffState", value=True)   # sensor "Off" means the door's closed, which is True for lock type devices (locked)
+
+                return
 
     ########################################
 
@@ -348,21 +354,6 @@ class Plugin(indigo.PluginBase):
             elif device['MyQDeviceTypeId'] == 3:			# Switch == 3?
                 for attr in device['Attributes']:
                     self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
-
-# 				look for this opener device in the existing devices for this plugin.  If it's not there (by id), then create it
-#
-# 				iterator = indigo.devices.iter(self)
-# 				for dev in iterator:
-# 					if dev.address == myqID:
-# 						break
-# 				else:							# Python syntax weirdness - this else belongs to the for loop!
-# 					newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-# 						address=myqID,
-# 						description = "Switch Device auto-created by MyQ plugin from gateway information",
-# 						deviceTypeId='myqSwitch',
-# 						name=name)
-# 				newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[int(state)])
-# 					self.debugLog(u'Created New Switch Device: %s (%s)' % (newdev.name, newdev.address))
 
             else:
                 for attr in device['Attributes']:
