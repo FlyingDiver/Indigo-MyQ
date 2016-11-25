@@ -53,7 +53,7 @@ class Plugin(indigo.PluginBase):
         self.next_update_check = time.time()
 
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
-        self.logger.debug(u"statusFrequency = " + str(self.updateFrequency))
+        self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
         self.next_status_check = time.time()
 
         self.apiData = {
@@ -145,7 +145,7 @@ class Plugin(indigo.PluginBase):
             errorDict['myqPassword'] = u"Enter your MyQ login password"
 
         statusFrequency = int(valuesDict['statusFrequency'])
-        if (statusFrequency < 5) or (statusFrequency > (24 * 60)):
+        if (0 < statusFrequency < 5) or (statusFrequency > (24 * 60)):
             errorDict['statusFrequency'] = u"Status frequency must be at least 5 min and less than 24 hours"
 
         updateFrequency = int(valuesDict['updateFrequency'])
@@ -170,6 +170,10 @@ class Plugin(indigo.PluginBase):
             self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
             self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
             self.next_update_check = time.time()
+
+            self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
+            self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
+            self.next_status_check = time.time()
 
     ########################################
 
