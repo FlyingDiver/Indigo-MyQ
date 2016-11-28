@@ -5,9 +5,7 @@
         <ConfigUI>
             <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
-            <Field id="address" type="textfield">
-                <Label>MyQ Device Number:</Label>
-            </Field>
+            <Field id="address" type="textfield"  hidden="true" />
 			<Field id="sensor" type="menu" >
 				<Label>Sensor Device:</Label>
 				<List class="indigo.devices" filter="indigo.sensor" />

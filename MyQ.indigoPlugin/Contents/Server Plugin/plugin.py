@@ -214,18 +214,22 @@ class Plugin(indigo.PluginBase):
 
         iterator = indigo.devices.iter(filter="self")
         for myqDevice in iterator:
-            sensorDev = myqDevice.pluginProps.get("sensor", "")
-            if origDev.id == int(sensorDev):
-                if origDev.onState == newDev.onState:
-                    self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
-                    return
+            try:
+                sensorDev = myqDevice.pluginProps["sensor"]
+            except:
+                pass
+            else:
+                if origDev.id == int(sensorDev):
+                    if origDev.onState == newDev.onState:
+                        self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
+                        return
 
-                self.logger.debug(u"deviceUpdated: %s has changed state: %s" % (origDev.name, str(newDev.onState)))
-                if newDev.onState:
-                    myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
-                else:
-                    myqDevice.updateStateOnServer(key="onOffState", value=True)   # sensor "Off" means the door's closed, which is True for lock type devices (locked)
-                self.triggerCheck(newDev)
+                    self.logger.debug(u"deviceUpdated: %s has changed state: %s" % (origDev.name, str(newDev.onState)))
+                    if newDev.onState:
+                        myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
+                    else:
+                        myqDevice.updateStateOnServer(key="onOffState", value=True)   # sensor "Off" means the door's closed, which is True for lock type devices (locked)
+                    self.triggerCheck(newDev)
 
                 return
 
@@ -312,17 +316,17 @@ class Plugin(indigo.PluginBase):
 
         self.logger.debug(u"getDevices: %d Devices" % len(data['Devices']))
 
-        for device in data['Devices']:
-            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, MyQDeviceTypeName = %s, DeviceId = %s" % (device['MyQDeviceTypeId'], device['MyQDeviceTypeName'], device['ConnectServerDeviceId']))
+        for myqDevice in data['Devices']:
+            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, MyQDeviceTypeName = %s, DeviceId = %s" % (myqDevice['MyQDeviceTypeId'], myqDevice['MyQDeviceTypeName'], myqDevice['ConnectServerDeviceId']))
 
             # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
 
-            if (device['MyQDeviceTypeId'] == 2) or (device['MyQDeviceTypeId'] == 5) or (device['MyQDeviceTypeId'] == 7) or (device['MyQDeviceTypeId'] == 17):
+            if (myqDevice['MyQDeviceTypeId'] == 2) or (myqDevice['MyQDeviceTypeId'] == 5) or (myqDevice['MyQDeviceTypeId'] == 7) or (myqDevice['MyQDeviceTypeId'] == 17):
 
                 name = u"Unknown"
                 state = -1
 
-                for attr in device['Attributes']:
+                for attr in myqDevice['Attributes']:
                     self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
                     if attr[u'AttributeDisplayName'] == u'desc':
@@ -330,17 +334,17 @@ class Plugin(indigo.PluginBase):
                     elif attr[u'AttributeDisplayName'] == u'doorstate':
                         state = int(attr[u'Value'])
                 if state > (len(doorStateNames) - 1):
-                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, device['ConnectServerDeviceId'], state))
+                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqDevice['ConnectServerDeviceId'], state))
                     state = 0       # unknown high states
                 elif state == -1:
-                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, device['ConnectServerDeviceId']))
+                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqDevice['ConnectServerDeviceId']))
                     state = 0       # unknown state
                 else:
-                    self.logger.info(u"%s %s is %s" % (device['MyQDeviceTypeName'], name, doorStateNames[state]))
+                    self.logger.info(u"%s %s is %s" % (myqDevice['MyQDeviceTypeName'], name, doorStateNames[state]))
 
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
-                    if dev.address == device['ConnectServerDeviceId']:
+                    if dev.address == myqDevice['ConnectServerDeviceId']:
                         newState = doorStateNames[state]
                         if dev.states["doorStatus"] != newState:
                             self.logger.info(u"MyQ Device %s is now %s" % (name, newState))
@@ -356,7 +360,7 @@ class Plugin(indigo.PluginBase):
                     # New MyQ device found, create it and set current state
 
                     newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-                        address=myqID,
+                        address=myqDevice['ConnectServerDeviceId'],
                         description = "Opener Device auto-created by MyQ plugin from gateway information",
                         deviceTypeId='myqOpener',
                         name=name)
@@ -367,12 +371,12 @@ class Plugin(indigo.PluginBase):
                         newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
 
-            elif device['MyQDeviceTypeId'] == 3:            # Light Switch?
-                for attr in device['Attributes']:
+            elif myqDevice['MyQDeviceTypeId'] == 3:            # Light Switch?
+                for attr in myqDevice['Attributes']:
                     self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
             else:
-                for attr in device['Attributes']:
+                for attr in myqDevice['Attributes']:
                     self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
 
