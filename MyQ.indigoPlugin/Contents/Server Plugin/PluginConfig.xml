@@ -21,9 +21,6 @@
     <Field id="statusNote" type="label" fontSize="small" fontColor="darkgray">
         <Label>The plugin will not update the devices if set to zero.  Minimum is 5.</Label>
     </Field>
-    <Field id="statusNote" type="label" fontSize="small" fontColor="darkgray">
-        <Label>The plugin will not update the devices if set to zero.  Minimum is 5.</Label>
-    </Field>
     <Field id="statusDelay" type="textfield" defaultValue="30">
         <Label>Delay after MyQ command before status update (seconds):</Label>
     </Field>
