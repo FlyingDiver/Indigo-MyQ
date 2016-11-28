@@ -19,7 +19,7 @@ kCurDevVersCount = 1        # current version of plugin devices
 kDoorClosed = 0
 kDoorOpen   = 1
 
-doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected"]
+doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected", "Unknown", "Unknown"]
 
 userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"
 
@@ -31,7 +31,6 @@ class Plugin(indigo.PluginBase):
     ########################################
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-
 
         pfmt = logging.Formatter('%(asctime)s.%(msecs)03d\t[%(levelname)8s] %(name)20s.%(funcName)-25s%(msg)s', datefmt='%Y-%m-%d %H:%M:%S')
         self.plugin_file_handler.setFormatter(pfmt)
@@ -135,7 +134,7 @@ class Plugin(indigo.PluginBase):
         try:
             sensor = indigo.devices[int(device.pluginProps["sensor"])]
         except:
-            self.logger.warning("Trigger %s (%d) invalid - no linked sensor for MyQ device %s" % (trigger.name, trigger.id, device.name))
+            self.logger.debug("Skipping triggers, no linked sensor for MyQ device %s" % (device.name))
             return
 
         for triggerId, trigger in sorted(self.triggers.iteritems()):
@@ -144,17 +143,6 @@ class Plugin(indigo.PluginBase):
 
             if device.onState == sensor.onState:        # these values are supposed to be opposite due to difference between sensor and lock devices
                 indigo.trigger.execute(trigger)         # so execute the out of sync trigger when they're not opposite
-
-
-#             if trigger.pluginTypeId == "myqDoorSync":
-#                 self.logger.debug("\tmyqDoorSync:  %s is %s, linked sensor %s is %s" % (device.name, str(device.onState), sensor.name, str(sensor.onState)))
-#
-#                 if device.onState == sensor.onState:        # these values are supposed to be opposite due to difference between sensor and lock devices
-#                     indigo.trigger.execute(trigger)         # so execute the out of sync trigger when they're not opposite
-#
-#             else:
-#                 self.logger.debug("\tUnknown Trigger Type %s (%d), %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
-
 
 
     ########################################
@@ -221,12 +209,13 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.deviceDeleted(self, dev)
 
         iterator = indigo.devices.iter(filter="self")
-        for myDevice in iterator:
-            if dev.id == myDevice.pluginProps["sensor"]:
+        for myqDevice in iterator:
+            sensorDev = myqDevice.pluginProps.get("sensor", "")
+            if dev.id == int(sensorDev):
                 self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
-                newProps = myDevice.pluginProps
+                newProps = myqDevice.pluginProps
                 newProps["sensor"] = ""
-                myDevice.replacePluginPropsOnServer(newProps)
+                myqDevice.replacePluginPropsOnServer(newProps)
 
 
     def deviceUpdated(self, origDev, newDev):
@@ -234,7 +223,8 @@ class Plugin(indigo.PluginBase):
 
         iterator = indigo.devices.iter(filter="self")
         for myqDevice in iterator:
-            if origDev.id == int(myqDevice.pluginProps["sensor"]):
+            sensorDev = myqDevice.pluginProps.get("sensor", "")
+            if origDev.id == int(sensorDev):
                 if origDev.onState == newDev.onState:
                     self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
                     return
