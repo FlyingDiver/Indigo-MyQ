@@ -19,7 +19,7 @@ kCurDevVersCount = 1        # current version of plugin devices
 kDoorClosed = 0
 kDoorOpen   = 1
 
-doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected"]
+doorStateNames = ["Unknown (0)", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown (6)", "Disconnected", "Unknown (8)", "Unknown (9)"]
 
 userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"
 
@@ -57,15 +57,6 @@ class Plugin(indigo.PluginBase):
         self.next_status_check = time.time()
 
         self.apiData = {
-#            "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-#                            },
-#            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
-#                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
-#                            },
-#            "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
-#                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-#                            },
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
@@ -187,24 +178,13 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"actionControlDevice: \"%s\" Lock" % dev.name)
             self.changeDevice(dev, kDoorClosed)
 
-        elif action.deviceAction == indigo.kDeviceAction.TurnOn:
-            self.logger.debug(u"actionControlDevice: \"%s\" On" % dev.name)
-            self.changeDevice(dev, kDoorOpen)
-
-        elif action.deviceAction == indigo.kDeviceAction.TurnOff:
-            self.logger.debug(u"actionControlDevice: \"%s\" Off" % dev.name)
-            self.changeDevice(dev, kDoorClosed)
-
-        elif action.deviceAction == indigo.kDeviceAction.Toggle:
-            self.logger.debug(u"actionControlDevice: \"%s\" Toggle" % dev.name)
-            if dev.isOn:
-                self.changeDevice(dev, kDoorClosed)
-            else:
-                self.changeDevice(dev, kDoorOpen)
-
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
             self.logger.debug(u"actionControlDevice: \"%s\" Request Status" % dev.name)
             self.getDevices()
+
+        else:
+            self.logger.error(u"actionControlDevice: \"%s\" Unsupported action requested: %s" % (dev.name, str(action)))
+
 
     ########################################
 
@@ -287,7 +267,7 @@ class Plugin(indigo.PluginBase):
                         name = attr[u'Value']
                     elif attr[u'AttributeDisplayName'] == u'doorstate':
                         state = int(attr[u'Value'])
-                if state > 7:
+                if state > (len(doorStateNames) - 1):
                     self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, device['ConnectServerDeviceId'], state))
                     state = 0       # unknown high states
                 elif state == -1:
