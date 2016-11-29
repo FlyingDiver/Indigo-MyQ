@@ -46,6 +46,7 @@ class Plugin(indigo.PluginBase):
     def startup(self):
         indigo.server.log(u"Starting MyQ")
 
+        self.myqDevices = {}
         self.triggers = { }
 
         self.updater = GitHubPluginUpdater(self)
@@ -110,6 +111,16 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"Updated " + device.name + " to version " + str(kCurDevVersCount))
         else:
             self.logger.error(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)
+
+        self.logger.debug("Adding Device %s (%d) to MyQ device list" % (device.name, device.id))
+        assert device.id not in self.myqDevices
+        self.myqDevices[device.id] = device
+
+    def deviceStopComm(self, device):
+        self.logger.debug("Removing Device %s (%d) from MyQ device list" % (device.name, device.id))
+        assert device.id in self.myqDevices
+        del self.myqDevices[device.id]
+
 
     def triggerStartProcessing(self, trigger):
         self.logger.debug("Adding Trigger %s (%d) - %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
@@ -194,13 +205,17 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
             self.next_status_check = time.time()
 
-    ########################################
+    ################################################################################
+    #
+    # delegate methods for indigo.devices.subscribeToChanges()
+    #
+    ################################################################################
 
     def deviceDeleted(self, dev):
         indigo.PluginBase.deviceDeleted(self, dev)
+#        self.logger.debug(u"deviceDeleted: %s " % dev.name)
 
-        iterator = indigo.devices.iter(filter="self")
-        for myqDevice in iterator:
+        for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
             sensorDev = myqDevice.pluginProps.get("sensor", "")
             if dev.id == int(sensorDev):
                 self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
@@ -211,15 +226,16 @@ class Plugin(indigo.PluginBase):
 
     def deviceUpdated(self, origDev, newDev):
         indigo.PluginBase.deviceUpdated(self, origDev, newDev)
+#        self.logger.debug(u"deviceUpdated: %s " % newDev.name)
 
-        iterator = indigo.devices.iter(filter="self")
-        for myqDevice in iterator:
+        for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
+#            self.logger.debug(u"\tchecking MyQ Device: %s " % myqDevice.name)
             try:
-                sensorDev = myqDevice.pluginProps["sensor"]
+                sensorDev = int(myqDevice.pluginProps["sensor"])
             except:
                 pass
             else:
-                if origDev.id == int(sensorDev):
+                if origDev.id == sensorDev:
                     if origDev.onState == newDev.onState:
                         self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
                         return
@@ -229,9 +245,7 @@ class Plugin(indigo.PluginBase):
                         myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
                     else:
                         myqDevice.updateStateOnServer(key="onOffState", value=True)   # sensor "Off" means the door's closed, which is True for lock type devices (locked)
-                    self.triggerCheck(newDev)
-
-                return
+                    self.triggerCheck(myqDevice)
 
     ########################################
 
