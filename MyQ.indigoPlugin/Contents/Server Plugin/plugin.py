@@ -19,7 +19,7 @@ kCurDevVersCount = 1        # current version of plugin devices
 kDoorClosed = 0
 kDoorOpen   = 1
 
-doorStateNames = ["Unknown (0)", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown (6)", "Disconnected", "Unknown (8)", "Unknown (9)"]
+doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected", "Unknown", "Unknown"]
 
 userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"
 
@@ -339,15 +339,13 @@ class Plugin(indigo.PluginBase):
                 elif state == -1:
                     self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqDevice['ConnectServerDeviceId']))
                     state = 0       # unknown state
-                else:
-                    self.logger.info(u"%s %s is %s" % (myqDevice['MyQDeviceTypeName'], name, doorStateNames[state]))
 
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
                     if dev.address == myqDevice['ConnectServerDeviceId']:
                         newState = doorStateNames[state]
                         if dev.states["doorStatus"] != newState:
-                            self.logger.info(u"MyQ Device %s is now %s" % (name, newState))
+                            self.logger.info(u"%s %s is now %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, newState, state))
                         dev.updateStateOnServer(key="doorStatus", value=newState)
                         if state == 2:
                            dev.updateStateOnServer(key="onOffState", value=True)  # closed is True
@@ -370,6 +368,7 @@ class Plugin(indigo.PluginBase):
                     else:
                         newdev.updateStateOnServer(key="onOffState", value=False)
                     self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
+                    self.logger.info(u"%s %s is %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, doorStateNames[state], state))
 
             elif myqDevice['MyQDeviceTypeId'] == 3:            # Light Switch?
                 for attr in myqDevice['Attributes']:
