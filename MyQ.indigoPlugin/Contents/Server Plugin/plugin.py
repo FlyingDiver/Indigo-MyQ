@@ -102,22 +102,22 @@ class Plugin(indigo.PluginBase):
 
         instanceVers = int(device.pluginProps.get('devVersCount', 0))
         if instanceVers >= kCurDevVersCount:
-            self.logger.debug(device.name + u": Device Version is up to date")
+            self.logger.debug(u"deviceStartComm: " + device.name + u": Device Version is up to date")
         elif instanceVers < kCurDevVersCount:
             newProps = device.pluginProps
             newProps['IsLockSubType'] = True
             newProps["devVersCount"] = kCurDevVersCount
             device.replacePluginPropsOnServer(newProps)
-            self.logger.debug(u"Updated " + device.name + " to version " + str(kCurDevVersCount))
+            self.logger.debug(u"deviceStartComm: Updated " + device.name + " to version " + str(kCurDevVersCount))
         else:
-            self.logger.error(u"Unknown device version: " + str(instanceVers) + " for device " + device.name)
+            self.logger.error(u"deviceStartComm: Unknown device version: " + str(instanceVers) + " for device " + device.name)
 
-        self.logger.debug("Adding Device %s (%d) to MyQ device list" % (device.name, device.id))
+        self.logger.debug("deviceStartComm: Adding Device %s (%d) to MyQ device list" % (device.name, device.id))
         assert device.id not in self.myqDevices
         self.myqDevices[device.id] = device
 
     def deviceStopComm(self, device):
-        self.logger.debug("Removing Device %s (%d) from MyQ device list" % (device.name, device.id))
+        self.logger.debug("deviceStopComm: Removing Device %s (%d) from MyQ device list" % (device.name, device.id))
         assert device.id in self.myqDevices
         del self.myqDevices[device.id]
 
@@ -185,6 +185,11 @@ class Plugin(indigo.PluginBase):
         if len(errorDict) > 0:
             return (False, valuesDict, errorDict)
 
+        if not self.myqLogin(username=valuesDict['myqLogin'], password=valuesDict['myqPassword']):
+            errorDict['myqLogin'] = u"Login to MyQ server failed, check login and password"
+            errorDict['myqPassword'] = u"Login to MyQ server failed, check login and password"
+            return (False, valuesDict, errorDict)
+
         return (True, valuesDict)
 
 
@@ -213,15 +218,19 @@ class Plugin(indigo.PluginBase):
 
     def deviceDeleted(self, dev):
         indigo.PluginBase.deviceDeleted(self, dev)
-#        self.logger.debug(u"deviceDeleted: %s " % dev.name)
+        self.logger.debug(u"deviceDeleted: %s " % dev.name)
 
         for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
-            sensorDev = myqDevice.pluginProps.get("sensor", "")
-            if dev.id == int(sensorDev):
-                self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
-                newProps = myqDevice.pluginProps
-                newProps["sensor"] = ""
-                myqDevice.replacePluginPropsOnServer(newProps)
+            try:
+                sensorDev = myqDevice.pluginProps["sensor"]
+            except:
+                pass
+            else:
+                if dev.id == int(sensorDev):
+                    self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
+                    newProps = myqDevice.pluginProps
+                    newProps["sensor"] = ""
+                    myqDevice.replacePluginPropsOnServer(newProps)
 
 
     def deviceUpdated(self, origDev, newDev):
@@ -270,49 +279,57 @@ class Plugin(indigo.PluginBase):
     ########################################
 
 
-    def myqLogin(self):
+    def myqLogin(self, username=None, password=None):
 
-        self.username = self.pluginPrefs.get('myqLogin', None)
-        self.password = self.pluginPrefs.get('myqPassword', None)
-        self.brand = self.pluginPrefs.get('openerBrand', None)
-        if (self.brand):
-            self.service = self.apiData[self.brand]["service"]
-            self.appID = self.apiData[self.brand]["appID"]
+        if not username:
+            username = self.pluginPrefs['myqLogin']
+        if not password:
+            password = self.pluginPrefs['myqPassword']
 
-        payload = {'appId': self.appID, 'securityToken': 'null', 'username': self.username, 'password': self.password, 'culture': 'en'}
-        login_url = self.service + '/api/user/validatewithculture'
+        brand = self.pluginPrefs.get('openerBrand', None)
+        if (brand):
+            self.service = self.apiData[brand]["service"]
+            self.appID = self.apiData[brand]["appID"]
+
+#        payload = {'appId': self.appID, 'securityToken': 'null', 'username': username, 'password': password, 'culture': 'en'}
+#        login_url = self.service + '/api/user/validatewithculture'
+        payload = {'appId': self.appID, 'username': username, 'password': password}
+        login_url = self.service + '/api/user/validate'
         headers = {'User-Agent': userAgent}
 
         try:
             response = requests.get(login_url, params=payload, headers=headers)
-            self.logger.debug(u"myqLogin: " + str(response.text))
+            self.logger.debug(u"myqLogin successful")
+#            self.logger.debug(u"myqLogin: " + str(response.text))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin failure: RequestException: " + str(err))
             self.securityToken = ""
-            return
+            return False
 
         try:
             data = response.json()
         except:
             self.logger.debug(u"myqLogin failure: JSON Decode Error: " + str(err))
             self.securityToken = ""
-            return
+            return False
 
         if data['ReturnCode'] != '0':
             self.logger.debug(u"myqLogin failure: Bad return code: " + data['ErrorMessage'])
             self.securityToken = ""
-            return
+            return False
 
         self.securityToken = data['SecurityToken']
+        return True
 
     ########################################
 
     def getDevices(self):
 
-        self.myqLogin()
-
-        if not self.securityToken:
+        if not self.myqLogin():
             return
+
+#        if not self.securityToken:
+#            return
 
         url =  self.service + '/api/v4/userdevicedetails/get'
         params = {'appId':self.appID, 'securityToken':self.securityToken}
@@ -335,24 +352,32 @@ class Plugin(indigo.PluginBase):
 
             # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
 
-            if (myqDevice['MyQDeviceTypeId'] == 2) or (myqDevice['MyQDeviceTypeId'] == 5) or (myqDevice['MyQDeviceTypeId'] == 7) or (myqDevice['MyQDeviceTypeId'] == 17):
+            if myqDevice['MyQDeviceTypeId'] == 1:            # Gateway
+                pass
+
+            elif (myqDevice['MyQDeviceTypeId'] == 2) or (myqDevice['MyQDeviceTypeId'] == 5) or (myqDevice['MyQDeviceTypeId'] == 7) or (myqDevice['MyQDeviceTypeId'] == 17):
 
                 name = u"Unknown"
                 state = -1
 
                 for attr in myqDevice['Attributes']:
-                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
+#                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
                     if attr[u'AttributeDisplayName'] == u'desc':
-                        name = attr[u'Value']
+                        descAttr = attr[u'Value']
+                    elif attr[u'AttributeDisplayName'] == u'name':
+                        nameAttr = attr[u'Value']
                     elif attr[u'AttributeDisplayName'] == u'doorstate':
                         state = int(attr[u'Value'])
+
                 if state > (len(doorStateNames) - 1):
                     self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqDevice['ConnectServerDeviceId'], state))
                     state = 0       # unknown high states
                 elif state == -1:
                     self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqDevice['ConnectServerDeviceId']))
                     state = 0       # unknown state
+
+                name = "%s (%s)" % (descAttr, nameAttr)
 
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
@@ -367,6 +392,7 @@ class Plugin(indigo.PluginBase):
                             dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "unlocked"
                         self.triggerCheck(dev)
                         break
+
                 else:                           # Python syntax weirdness - this else belongs to the for loop!
 
                     # New MyQ device found, create it and set current state
@@ -385,8 +411,9 @@ class Plugin(indigo.PluginBase):
                     self.logger.info(u"%s %s is %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, doorStateNames[state], state))
 
             elif myqDevice['MyQDeviceTypeId'] == 3:            # Light Switch?
-                for attr in myqDevice['Attributes']:
-                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
+                pass
+#                for attr in myqDevice['Attributes']:
+#                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
             else:
                 for attr in myqDevice['Attributes']:
@@ -396,6 +423,7 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def changeDeviceAction(self, pluginAction):
+        self.logger.debug(u"changeDeviceAction, deviceId = %s, actionId = " % (pluginAction.deviceId, pluginAction.pluginTypeId))
 
         if pluginAction != None:
             myqDevice = indigo.devices[pluginAction.deviceId]
