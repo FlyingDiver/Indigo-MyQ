@@ -88,10 +88,9 @@ class Plugin(indigo.PluginBase):
                         self.updater.checkForUpdate()
                         self.next_update_check = time.time() + self.updateFrequency
 
-                if self.statusFrequency > 0:
-                    if time.time() > self.next_status_check:
-                        self.getDevices()
-                        self.next_status_check = time.time() + self.statusFrequency
+                if time.time() > self.next_status_check:
+                    self.getDevices()
+                    self.next_status_check = time.time() + self.statusFrequency
 
                 self.sleep(60.0)
 
@@ -108,6 +107,7 @@ class Plugin(indigo.PluginBase):
             newProps['IsLockSubType'] = True
             newProps["devVersCount"] = kCurDevVersCount
             device.replacePluginPropsOnServer(newProps)
+            device.stateListOrDisplayStateIdChanged()
             self.logger.debug(u"deviceStartComm: Updated " + device.name + " to version " + str(kCurDevVersCount))
         else:
             self.logger.error(u"deviceStartComm: Unknown device version: " + str(instanceVers) + " for device " + device.name)
@@ -175,12 +175,12 @@ class Plugin(indigo.PluginBase):
             errorDict['myqPassword'] = u"Enter your MyQ login password"
 
         statusFrequency = int(valuesDict['statusFrequency'])
-        if (0 < statusFrequency < 5) or (statusFrequency > (24 * 60)):
-            errorDict['statusFrequency'] = u"Status frequency must be at least 5 min and less than 24 hours"
+        if (statusFrequency < 5) or (statusFrequency > (24 * 60)):
+            errorDict['statusFrequency'] = u"Status frequency must be at least 5 min and no more than 24 hours"
 
         updateFrequency = int(valuesDict['updateFrequency'])
         if (updateFrequency < 0) or (updateFrequency > 24):
-            errorDict['updateFrequency'] = u"Update frequency is invalid - enter a valid number (between 0 and 24)"
+            errorDict['updateFrequency'] = u"Update frequency is invalid - enter a valid number (between 0 and 24 hours)"
 
         if len(errorDict) > 0:
             return (False, valuesDict, errorDict)

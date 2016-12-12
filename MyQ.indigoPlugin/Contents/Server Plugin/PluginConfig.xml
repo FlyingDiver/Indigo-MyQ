@@ -19,7 +19,7 @@
         <Label>Update device status frequency (minutes):</Label>
     </Field>
     <Field id="statusNote" type="label" fontSize="small" fontColor="darkgray">
-        <Label>The plugin will not update the devices if set to zero.  Minimum is 5.</Label>
+        <Label>Minimum update interval is 5 minutes.  Maximum is 1440 (24 hours).  Default is 10.</Label>
     </Field>
     <Field id="statusDelay" type="textfield" defaultValue="30">
         <Label>Delay after MyQ command before status update (seconds):</Label>
