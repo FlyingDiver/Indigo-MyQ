@@ -41,6 +41,8 @@ class Plugin(indigo.PluginBase):
             self.logLevel = logging.INFO
         self.indigo_log_handler.setLevel(self.logLevel)
         self.logger.debug(u"logLevel = " + str(self.logLevel))
+        
+        self.loginOK = False
 
 
     def startup(self):
@@ -48,18 +50,6 @@ class Plugin(indigo.PluginBase):
 
         self.myqDevices = {}
         self.triggers = { }
-
-        self.updater = GitHubPluginUpdater(self)
-        self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
-        self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
-        self.next_update_check = time.time()
-
-        self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
-        self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
-        self.next_status_check = time.time()
-
-        # Watch for changes to sensors associated with an opener
-        indigo.devices.subscribeToChanges()
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
@@ -72,6 +62,18 @@ class Plugin(indigo.PluginBase):
                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
                         }
+
+        self.updater = GitHubPluginUpdater(self)
+        self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
+        self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
+        self.next_update_check = time.time()
+
+        self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
+        self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
+        self.next_status_check = time.time()
+
+        # Watch for changes to sensors associated with an opener
+        indigo.devices.subscribeToChanges()
 
 
     def shutdown(self):
@@ -186,8 +188,8 @@ class Plugin(indigo.PluginBase):
             return (False, valuesDict, errorDict)
 
         if not self.myqLogin(username=valuesDict['myqLogin'], password=valuesDict['myqPassword']):
-            errorDict['myqLogin'] = u"Login to MyQ server failed, check login and password"
-            errorDict['myqPassword'] = u"Login to MyQ server failed, check login and password"
+            errorDict['myqLogin'] = u"Login to MyQ server failed, check login, password, and brand"
+            errorDict['myqPassword'] = u"Login to MyQ server failed, check login, password, and brand"
             return (False, valuesDict, errorDict)
 
         return (True, valuesDict)
@@ -281,11 +283,6 @@ class Plugin(indigo.PluginBase):
 
     def myqLogin(self, username=None, password=None):
 
-        if not username:
-            username = self.pluginPrefs['myqLogin']
-        if not password:
-            password = self.pluginPrefs['myqPassword']
-
         brand = self.pluginPrefs.get('openerBrand', None)
         if (brand):
             self.service = self.apiData[brand]["service"]
@@ -293,43 +290,44 @@ class Plugin(indigo.PluginBase):
 
 #        payload = {'appId': self.appID, 'securityToken': 'null', 'username': username, 'password': password, 'culture': 'en'}
 #        login_url = self.service + '/api/user/validatewithculture'
+
         payload = {'appId': self.appID, 'username': username, 'password': password}
         login_url = self.service + '/api/user/validate'
         headers = {'User-Agent': userAgent}
+        self.logger.debug(u"myqLogin: url = %s, payload = %s" % (login_url, payload))
 
         try:
             response = requests.get(login_url, params=payload, headers=headers)
-            self.logger.debug(u"myqLogin successful")
-#            self.logger.debug(u"myqLogin: " + str(response.text))
+            self.logger.debug(u"myqLogin successful, response: %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
-            self.logger.debug(u"myqLogin failure: RequestException: " + str(err))
+            self.logger.debug(u"myqLogin failure, RequestException: %s" % (str(err)))
             self.securityToken = ""
             return False
 
         try:
             data = response.json()
         except:
-            self.logger.debug(u"myqLogin failure: JSON Decode Error: " + str(err))
+            self.logger.debug(u"myqLogin failure, JSON Decode Error: %s" % (str(err)))
             self.securityToken = ""
             return False
 
         if data['ReturnCode'] != '0':
-            self.logger.debug(u"myqLogin failure: Bad return code: " + data['ErrorMessage'])
+            self.logger.debug(u"myqLogin failure, Bad return code: %s" % (data['ErrorMessage']))
             self.securityToken = ""
             return False
 
         self.securityToken = data['SecurityToken']
+        self.logger.debug(u"myqLogin successful, SecurityToken: %s" % (self.securityToken))
+        self.loginOK = True
         return True
 
     ########################################
 
     def getDevices(self):
 
-        if not self.myqLogin():
+        if not self.myqLogin(username = self.pluginPrefs['myqLogin'], password = self.pluginPrefs['myqPassword']):
+            self.logger.debug(u"getDevices: MyQ Login Failure")
             return
-
-#        if not self.securityToken:
-#            return
 
         url =  self.service + '/api/v4/userdevicedetails/get'
         params = {'appId':self.appID, 'securityToken':self.securityToken}
@@ -438,8 +436,10 @@ class Plugin(indigo.PluginBase):
     def changeDevice(self, device, state):
         self.logger.debug(u"changeDevice: %s, state = %d" % (device.name, state))
 
-        self.myqLogin()
-
+        if not self.myqLogin(username = self.pluginPrefs['myqLogin'], password = self.pluginPrefs['myqPassword']):
+            self.logger.debug(u"changeDevice: MyQ Login Failure")
+            return
+            
         url = self.service + '/api/deviceattribute/putdeviceattribute'
         payload = {
            'ApplicationId': self.appID,
