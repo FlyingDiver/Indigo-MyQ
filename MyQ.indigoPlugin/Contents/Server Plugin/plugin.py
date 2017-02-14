@@ -21,7 +21,7 @@ kDoorOpen   = 1
 
 doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected", "Unknown", "Unknown"]
 
-userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36"
+userAgent = "Chamberlain/3773 (iPhone; iOS 10.0.1; Scale/2.00)"
 
 ################################################################################
 class Plugin(indigo.PluginBase):
@@ -56,7 +56,7 @@ class Plugin(indigo.PluginBase):
                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
                             },
             "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
-                                "appID" : "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
+                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
@@ -296,15 +296,22 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"myqLogin failure, Username or Password not set")
             return False
 
-        payload = {'appId': self.apiData[brand]["appID"], 'username': username, 'password': password}
-        url = self.apiData[brand]["service"] + '/api/user/validate'
-        headers = {'User-Agent': userAgent}
+        payload = {'username': username, 'password': password}
+        url = self.apiData[brand]["service"] + '/api/v4/user/validate'
+        headers = {
+                'User-Agent':       userAgent, 
+                "BrandId":          "2",
+                "ApiVersion":       "4.1",
+                "Culture":          "en",
+                'MyQApplicationId': self.apiData[brand]["appID"]
+            }
 
         try:
-            response = requests.get(url, params=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers)
             self.logger.debug(u"myqLogin request url = %s" % (response.url))
             self.logger.debug(u"myqLogin response = %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
+            self.logger.debug(u"myqLogin failure, request url = %s" % (url))
             self.logger.debug(u"myqLogin failure, RequestException: %s" % (str(err)))
             self.securityToken = ""
             return False
@@ -312,7 +319,7 @@ class Plugin(indigo.PluginBase):
         try:
             data = response.json()
         except:
-            self.logger.debug(u"myqLogin failure, JSON Decode Error: %s" % (str(err)))
+            self.logger.debug(u"myqLogin failure, JSON Decode Error")
             self.securityToken = ""
             return False
 
@@ -449,19 +456,37 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"changeDevice: MyQ Login Failure")
             return
             
-        url = self.apiData[brand]["service"] + '/api/deviceattribute/putdeviceattribute'
+        url = self.apiData[brand]["service"] + '/api/v4/DeviceAttribute/PutDeviceAttribute'
+        headers = {
+            'User-Agent':       userAgent, 
+            "BrandId":          "2",
+            "ApiVersion":       "4.1",
+            "Culture":          "en",
+            'MyQApplicationId': self.apiData[brand]["appID"],
+            'SecurityToken':    self.securityToken
+        }    
         payload = {
-           'ApplicationId':     self.apiData[brand]["appID"],
-           'AttributeName':     'desireddoorstate',
-           'DeviceId':          device.address,
-           'AttributeValue':    state,
-           'SecurityToken':     self.securityToken
-           }
-        headers = {'User-Agent': userAgent}
+           'appId':             self.apiData[brand]["appID"],
+            'SecurityToken':    self.securityToken
+        }
+        post_data = {
+            'AttributeName':    "desireddoorstate",
+            'AttributeValue':   state,
+            'MyQDeviceId':      device.address,
+            'ApplicationId':    self.apiData[brand]["appID"],
+            'SecurityToken':    self.securityToken,
+            'format':           "json",
+            'nojsoncallback':    "1",
+        }
+        
+        
         try:
-            response = requests.put(url, data=payload, headers=headers)
+            response = requests.put(url, headers=headers, params=payload, data=post_data)
+            self.logger.debug(u"changeDevice request url = %s" % (response.url))
+            self.logger.debug(u"changeDevice response = %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
-            self.logger.debug(u"changeDevice: RequestException: " + str(err))
+            self.logger.debug(u"changeDevice failure, request url = %s" % (url))
+            self.logger.debug(u"changeDevice failure, RequestException: %s" % (str(err)))
             return
 
         data = response.json()
