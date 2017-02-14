@@ -53,13 +53,16 @@ class Plugin(indigo.PluginBase):
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                                "appID" : "OA9I/hgmPHFp9RYKJqCKfwnhh28uqLJzZ9KOJf1DXoo8N2XAaVX6A1wcLYyWsnnv"
                             },
-            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
-                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
+            "craftsman" :   {   "service" : "https://myqexternal.myqdevice.com",
+                                "appID" : "YmiMRRS1juXdSd0KWsuKtHmQvh5RftEp5iewHdCvsNB77FnQbY+vjCVn2nMdIeN8"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
+                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+                            },
+            "merlin" : {    "service" : "https://myqexternal.myqdevice.com",
+                                "appID" : "3004cac4e920426c823fa6c2ecf0cc28ef7d4a7b74b6470f8f0d94d6c39eb718"
                             },
                         }
 
@@ -312,19 +315,24 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"myqLogin response = %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin failure, request url = %s" % (url))
-            self.logger.debug(u"myqLogin failure, RequestException: %s" % (str(err)))
+            self.logger.error(u"myqLogin failure, RequestException: %s" % (str(err)))
             self.securityToken = ""
             return False
+
+        if (response.status_code != requests.codes.ok):
+            self.logger.debug(u"myqLogin failure, Enum err code %s" % (response.status_coderl))
+            self.securityToken = ""
+            return False        
 
         try:
             data = response.json()
         except:
-            self.logger.debug(u"myqLogin failure, JSON Decode Error")
+            self.logger.error(u"myqLogin failure, JSON Decode Error")
             self.securityToken = ""
             return False
 
         if data['ReturnCode'] != '0':
-            self.logger.debug(u"myqLogin failure, Bad return code: %s" % (data['ErrorMessage']))
+            self.logger.error(u"myqLogin failure, Bad return code: %s" % (data['ErrorMessage']))
             self.securityToken = ""
             return False
 
@@ -349,12 +357,12 @@ class Plugin(indigo.PluginBase):
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
-            self.logger.debug(u"getDevices: RequestException: " + str(err))
+            self.logger.error(u"getDevices: RequestException: " + str(err))
             return
 
         data = response.json()
         if data['ReturnCode'] != '0':
-            self.logger.debug(u"getDevices: Bad return code: " + data['ErrorMessage'])
+            self.logger.error(u"getDevices: Bad return code: " + data['ErrorMessage'])
             return
 
         self.logger.debug(u"getDevices: %d Devices" % len(data['Devices']))
@@ -458,37 +466,29 @@ class Plugin(indigo.PluginBase):
             
         url = self.apiData[brand]["service"] + '/api/v4/DeviceAttribute/PutDeviceAttribute'
         headers = {
-            'User-Agent':       userAgent, 
-            "BrandId":          "2",
-            "ApiVersion":       "4.1",
-            "Culture":          "en",
             'MyQApplicationId': self.apiData[brand]["appID"],
             'SecurityToken':    self.securityToken
         }    
         payload = {
-           'appId':             self.apiData[brand]["appID"],
-            'SecurityToken':    self.securityToken
-        }
-        post_data = {
             'AttributeName':    "desireddoorstate",
-            'AttributeValue':   state,
             'MyQDeviceId':      device.address,
             'ApplicationId':    self.apiData[brand]["appID"],
-            'SecurityToken':    self.securityToken,
-            'format':           "json",
-            'nojsoncallback':    "1",
+            'AttributeValue':   state,
+            'SecurityToken':    self.securityToken
         }
         
-        
         try:
-            response = requests.put(url, headers=headers, params=payload, data=post_data)
-            self.logger.debug(u"changeDevice request url = %s" % (response.url))
+            response = requests.put(url, headers=headers, data=payload)
             self.logger.debug(u"changeDevice response = %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"changeDevice failure, request url = %s" % (url))
-            self.logger.debug(u"changeDevice failure, RequestException: %s" % (str(err)))
+            self.logger.error(u"changeDevice failure, RequestException: %s" % (str(err)))
             return
 
+        if (response.status_code != requests.codes.ok):
+            self.logger.error(u"changeDevice failure, Request error code: %s" % (response.status_code))
+            return
+            
         data = response.json()
         if data['ReturnCode'] != '0':
             self.logger.debug(u"changeDevice: Bad return code: " + data['ErrorMessage'])
