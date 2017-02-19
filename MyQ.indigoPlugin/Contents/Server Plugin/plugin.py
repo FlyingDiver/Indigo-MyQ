@@ -16,8 +16,8 @@ from ghpu import GitHubPluginUpdater
 
 kCurDevVersCount = 1        # current version of plugin devices
 
-kDoorClosed = 0
-kDoorOpen   = 1
+kDoorClose  = '0'
+kDoorOpen   = '1'
 
 doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected", "Unknown", "Unknown"]
 
@@ -53,16 +53,13 @@ class Plugin(indigo.PluginBase):
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "OA9I/hgmPHFp9RYKJqCKfwnhh28uqLJzZ9KOJf1DXoo8N2XAaVX6A1wcLYyWsnnv"
+                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
                             },
-            "craftsman" :   {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "YmiMRRS1juXdSd0KWsuKtHmQvh5RftEp5iewHdCvsNB77FnQbY+vjCVn2nMdIeN8"
+            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
+                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
-                            },
-            "merlin" : {    "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "3004cac4e920426c823fa6c2ecf0cc28ef7d4a7b74b6470f8f0d94d6c39eb718"
                             },
                         }
 
@@ -280,7 +277,7 @@ class Plugin(indigo.PluginBase):
 
         elif action.deviceAction == indigo.kDeviceAction.Lock:
             self.logger.debug(u"actionControlDevice: \"%s\" Lock" % dev.name)
-            self.changeDevice(dev, kDoorClosed)
+            self.changeDevice(dev, kDoorClose)
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
             self.logger.debug(u"actionControlDevice: \"%s\" Request Status" % dev.name)
@@ -299,8 +296,9 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"myqLogin failure, Username or Password not set")
             return False
 
-        payload = {'username': username, 'password': password}
         url = self.apiData[brand]["service"] + '/api/v4/user/validate'
+#        self.logger.debug(u"myqLogin url = %s" % str(url))
+
         headers = {
                 'User-Agent':       userAgent, 
                 "BrandId":          "2",
@@ -308,11 +306,17 @@ class Plugin(indigo.PluginBase):
                 "Culture":          "en",
                 'MyQApplicationId': self.apiData[brand]["appID"]
             }
+#        self.logger.debug(u"myqLogin headers = %s" % str(headers))
+
+        payload = {
+                'username': username, 
+                'password': password
+            }
+#        self.logger.debug(u"myqLogin payload = %s" % str(payload))
 
         try:
             response = requests.post(url, json=payload, headers=headers)
-            self.logger.debug(u"myqLogin request url = %s" % (response.url))
-            self.logger.debug(u"myqLogin response = %s" % (str(response.text)))
+#            self.logger.debug(u"myqLogin response = %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin failure, request url = %s" % (url))
             self.logger.error(u"myqLogin failure, RequestException: %s" % (str(err)))
@@ -337,7 +341,7 @@ class Plugin(indigo.PluginBase):
             return False
 
         self.securityToken = data['SecurityToken']
-        self.logger.debug(u"myqLogin successful, SecurityToken: %s" % (self.securityToken))
+        self.logger.debug(u"myqLogin successfull")
         self.loginOK = True
         return True
 
@@ -351,7 +355,7 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"getDevices: MyQ Login Failure")
             return
 
-        url =  self.apiData[brand]["service"] + '/api/v4/userdevicedetails/get'
+        url =  self.apiData[brand]["service"] + '/api/v4/UserDeviceDetails/Get'
         params = {'appId':self.apiData[brand]["appID"], 'securityToken':self.securityToken}
         headers = {'User-Agent': userAgent }
         try:
@@ -368,7 +372,7 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"getDevices: %d Devices" % len(data['Devices']))
 
         for myqDevice in data['Devices']:
-            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, MyQDeviceTypeName = %s, DeviceId = %s" % (myqDevice['MyQDeviceTypeId'], myqDevice['MyQDeviceTypeName'], myqDevice['ConnectServerDeviceId']))
+            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, MyQDeviceTypeName = %s, DeviceId = %s" % (myqDevice['MyQDeviceTypeId'], myqDevice['MyQDeviceTypeName'], myqDevice['MyQDeviceId']))
 
             # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
 
@@ -377,11 +381,10 @@ class Plugin(indigo.PluginBase):
 
             elif (myqDevice['MyQDeviceTypeId'] == 2) or (myqDevice['MyQDeviceTypeId'] == 5) or (myqDevice['MyQDeviceTypeId'] == 7) or (myqDevice['MyQDeviceTypeId'] == 17):
 
-                name = u"Unknown"
+                myqID = myqDevice['MyQDeviceId']
                 state = -1
 
                 for attr in myqDevice['Attributes']:
-#                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
                     if attr[u'AttributeDisplayName'] == u'desc':
                         descAttr = attr[u'Value']
@@ -390,38 +393,47 @@ class Plugin(indigo.PluginBase):
                     elif attr[u'AttributeDisplayName'] == u'doorstate':
                         state = int(attr[u'Value'])
 
-                if state > (len(doorStateNames) - 1):
-                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqDevice['ConnectServerDeviceId'], state))
-                    state = 0       # unknown high states
-                elif state == -1:
-                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqDevice['ConnectServerDeviceId']))
-                    state = 0       # unknown state
-
                 name = "%s (%s)" % (descAttr, nameAttr)
 
+                if state > (len(doorStateNames) - 1):
+                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqDevice['MyQDeviceId'], state))
+                    state = 0       # unknown high states
+                elif state == -1:
+                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqDevice['MyQDeviceId']))
+                    state = 0       # unknown state
+
+                found = False
                 iterator = indigo.devices.iter(filter="self")
                 for dev in iterator:
-                    if dev.address == myqDevice['ConnectServerDeviceId']:
+                    self.logger.debug(u'Checking Opener Device: %s (%s) against %s' % (dev.name, dev.address, myqID))
+                    if int(dev.address) == int(myqID):
+                        found = True
                         newState = doorStateNames[state]
                         if dev.states["doorStatus"] != newState:
                             self.logger.info(u"%s %s is now %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, newState, state))
-                        dev.updateStateOnServer(key="doorStatus", value=newState)
+                            dev.updateStateOnServer(key="doorStatus", value=newState)
                         if state == 2:
                            dev.updateStateOnServer(key="onOffState", value=True)  # closed is True
                         else:
                             dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "unlocked"
                         self.triggerCheck(dev)
                         break
-
-                else:                           # Python syntax weirdness - this else belongs to the for loop!
+                        
+                if not found:
+                    self.logger.debug(u'Unknown MyQ Device: %s' % (myqID))
 
                     # New MyQ device found, create it and set current state
 
-                    newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-                        address=myqDevice['ConnectServerDeviceId'],
-                        description = "Opener Device auto-created by MyQ plugin from gateway information",
-                        deviceTypeId='myqOpener',
-                        name=name)
+                    try:
+                        newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
+                            address=myqID,
+                            description = "Opener Device auto-created by MyQ plugin from gateway information",
+                            deviceTypeId='myqOpener',
+                            name=name)
+                    except Exception as err:
+                        self.logger.error(u'Error Creating Opener Device: %s (%s)' % (name, myqDevice[u'MyQDeviceId']))
+                        continue
+                    
                     newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[state])
                     if state == 2:
                         newdev.updateStateOnServer(key="onOffState", value=True)
@@ -451,12 +463,12 @@ class Plugin(indigo.PluginBase):
             if myqActionId == "openDoor":
                 self.changeDevice(myqDevice, kDoorOpen)
             elif myqActionId == "closeDoor":
-                self.changeDevice(myqDevice, kDoorClosed)
+                self.changeDevice(myqDevice, kDoorClose)
             else:
                 self.logger.debug(u"changeDeviceAction, unknown myqActionId = %s" % myqActionId)
 
     def changeDevice(self, device, state):
-        self.logger.debug(u"changeDevice: %s, state = %d" % (device.name, state))
+        self.logger.debug(u"changeDevice: %s, state = %s" % (device.name, state))
 
         brand = self.pluginPrefs.get('openerBrand', None)
         
@@ -465,23 +477,25 @@ class Plugin(indigo.PluginBase):
             return
             
         url = self.apiData[brand]["service"] + '/api/v4/DeviceAttribute/PutDeviceAttribute'
+#        self.logger.debug(u"changeDevice url = %s" % str(url))
+
         headers = {
+            'SecurityToken':    self.securityToken,
             'MyQApplicationId': self.apiData[brand]["appID"],
-            'SecurityToken':    self.securityToken
+            'User-Agent': userAgent
         }    
+#        self.logger.debug(u"changeDevice headers = %s" % str(headers))
+
         payload = {
-            'AttributeName':    "desireddoorstate",
-            'MyQDeviceId':      device.address,
-            'ApplicationId':    self.apiData[brand]["appID"],
+            'attributeName':    "desireddoorstate",
+            'myQDeviceId':      int(device.address),
             'AttributeValue':   state,
-            'SecurityToken':    self.securityToken
         }
+#        self.logger.debug(u"changeDevice payload = %s" % str(payload))
         
         try:
-            response = requests.put(url, headers=headers, data=payload)
-            self.logger.debug(u"changeDevice response = %s" % (str(response.text)))
+            response = requests.put(url, data=payload, headers=headers)
         except requests.exceptions.RequestException as err:
-            self.logger.debug(u"changeDevice failure, request url = %s" % (url))
             self.logger.error(u"changeDevice failure, RequestException: %s" % (str(err)))
             return
 
