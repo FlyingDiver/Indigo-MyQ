@@ -8,7 +8,7 @@
             <Field id="address" type="textfield"  hidden="true" />
 			<Field id="sensor" type="menu" >
 				<Label>Sensor Device:</Label>
-				<List class="indigo.devices" filter="indigo.sensor" />
+				<List class="indigo.devices" filter="indigo.sensor, indigo.iodevice" />
 			</Field>
         </ConfigUI>
         <States>

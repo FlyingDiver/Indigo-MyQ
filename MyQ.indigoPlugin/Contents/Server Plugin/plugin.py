@@ -143,9 +143,14 @@ class Plugin(indigo.PluginBase):
 
         for triggerId, trigger in sorted(self.triggers.iteritems()):
             self.logger.debug("Checking Trigger %s (%s), Type: %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
-            self.logger.debug("\tmyqDoorSync:  %s is %s, linked sensor %s is %s" % (device.name, str(device.onState), sensor.name, str(sensor.onState)))
+            if isinstance(sensor, indigo.SensorDevice):
+                sensor_state = sensor.onState
+            elif isinstance(sensor, indigo.MultiIODevice):
+                sensor_state = not sensor.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
+            
+            self.logger.debug("\tmyqDoorSync:  %s is %s, linked sensor %s is %s" % (device.name, str(device.onState), sensor.name, str(sensor_state)))
 
-            if device.onState == sensor.onState:        # these values are supposed to be opposite due to difference between sensor and lock devices
+            if device.onState == sensor_state:        # these values are supposed to be opposite due to difference between sensor and lock devices
                 indigo.trigger.execute(trigger)         # so execute the out of sync trigger when they're not opposite
 
 
@@ -256,12 +261,18 @@ class Plugin(indigo.PluginBase):
                 pass
             else:
                 if origDev.id == sensorDev:
-                    if origDev.onState == newDev.onState:
+                    if isinstance(newDev, indigo.SensorDevice):
+                        old_sensor_state = origDev.onState
+                        sensor_state = newDev.onState
+                    elif isinstance(newDev, indigo.MultiIODevice):
+                        old_sensor_state =  not origDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
+                        sensor_state = not newDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
+                    if old_sensor_state == sensor_state:
                         self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
                         return
 
-                    self.logger.debug(u"deviceUpdated: %s has changed state: %s" % (origDev.name, str(newDev.onState)))
-                    if newDev.onState:
+                    self.logger.debug(u"deviceUpdated: %s has changed state: %s" % (origDev.name, str(sensor_state)))
+                    if sensor_state:
                         myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
                     else:
                         myqDevice.updateStateOnServer(key="onOffState", value=True)   # sensor "Off" means the door's closed, which is True for lock type devices (locked)
