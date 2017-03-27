@@ -251,10 +251,8 @@ class Plugin(indigo.PluginBase):
 
     def deviceUpdated(self, origDev, newDev):
         indigo.PluginBase.deviceUpdated(self, origDev, newDev)
-#        self.logger.debug(u"deviceUpdated: %s " % newDev.name)
 
         for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
-#            self.logger.debug(u"\tchecking MyQ Device: %s " % myqDevice.name)
             try:
                 sensorDev = int(myqDevice.pluginProps["sensor"])
             except:
@@ -267,6 +265,9 @@ class Plugin(indigo.PluginBase):
                     elif isinstance(newDev, indigo.MultiIODevice):
                         old_sensor_state =  not origDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
                         sensor_state = not newDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
+                    else:    
+                        self.logger.error(u"deviceUpdated: unknown device type for %s" % origDev.name)
+                        
                     if old_sensor_state == sensor_state:
                         self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
                         return
@@ -308,26 +309,20 @@ class Plugin(indigo.PluginBase):
             return False
 
         url = self.apiData[brand]["service"] + '/api/v4/user/validate'
-#        self.logger.debug(u"myqLogin url = %s" % str(url))
-
         headers = {
                 'User-Agent':       userAgent, 
                 "BrandId":          "2",
                 "ApiVersion":       "4.1",
                 "Culture":          "en",
                 'MyQApplicationId': self.apiData[brand]["appID"]
-            }
-#        self.logger.debug(u"myqLogin headers = %s" % str(headers))
-
+        }
         payload = {
                 'username': username, 
                 'password': password
-            }
-#        self.logger.debug(u"myqLogin payload = %s" % str(payload))
+        }
 
         try:
             response = requests.post(url, json=payload, headers=headers)
-#            self.logger.debug(u"myqLogin response = %s" % (str(response.text)))
         except requests.exceptions.RequestException as err:
             self.logger.debug(u"myqLogin failure, request url = %s" % (url))
             self.logger.error(u"myqLogin failure, RequestException: %s" % (str(err)))
@@ -488,21 +483,16 @@ class Plugin(indigo.PluginBase):
             return
             
         url = self.apiData[brand]["service"] + '/api/v4/DeviceAttribute/PutDeviceAttribute'
-#        self.logger.debug(u"changeDevice url = %s" % str(url))
-
         headers = {
             'SecurityToken':    self.securityToken,
             'MyQApplicationId': self.apiData[brand]["appID"],
             'User-Agent': userAgent
         }    
-#        self.logger.debug(u"changeDevice headers = %s" % str(headers))
-
         payload = {
             'attributeName':    "desireddoorstate",
             'myQDeviceId':      int(device.address),
             'AttributeValue':   state,
         }
-#        self.logger.debug(u"changeDevice payload = %s" % str(payload))
         
         try:
             response = requests.put(url, data=payload, headers=headers)
