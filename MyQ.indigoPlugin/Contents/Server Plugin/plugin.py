@@ -240,13 +240,18 @@ class Plugin(indigo.PluginBase):
             try:
                 sensorDev = myqDevice.pluginProps["sensor"]
             except:
-                pass
-            else:
-                if dev.id == int(sensorDev):
-                    self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
-                    newProps = myqDevice.pluginProps
-                    newProps["sensor"] = ""
-                    myqDevice.replacePluginPropsOnServer(newProps)
+                return
+            
+            try:
+                sensorID = int(sensorDev)
+            except:
+                return
+                
+            if dev.id == sensorID:
+                self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
+                newProps = myqDevice.pluginProps
+                newProps["sensor"] = ""
+                myqDevice.replacePluginPropsOnServer(newProps)
 
 
     def deviceUpdated(self, origDev, newDev):
@@ -419,9 +424,9 @@ class Plugin(indigo.PluginBase):
                             self.logger.info(u"%s %s is now %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, newState, state))
                             dev.updateStateOnServer(key="doorStatus", value=newState)
                         if state == 2:
-                           dev.updateStateOnServer(key="onOffState", value=True)  # closed is True
+                           dev.updateStateOnServer(key="onOffState", value=True)  # closed is True (Locked)
                         else:
-                            dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "unlocked"
+                            dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "Unlocked"
                         self.triggerCheck(dev)
                         break
                         
@@ -461,7 +466,7 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def changeDeviceAction(self, pluginAction):
-        self.logger.debug(u"changeDeviceAction, deviceId = %s, actionId = " % (pluginAction.deviceId, pluginAction.pluginTypeId))
+        self.logger.debug(u"changeDeviceAction, deviceId = %s, actionId = %s" % (pluginAction.deviceId, pluginAction.pluginTypeId))
 
         if pluginAction != None:
             myqDevice = indigo.devices[pluginAction.deviceId]
