@@ -335,7 +335,7 @@ class Plugin(indigo.PluginBase):
             return False
 
         if (response.status_code != requests.codes.ok):
-            self.logger.debug(u"myqLogin failure, Enum err code %s" % (response.status_coderl))
+            self.logger.debug(u"myqLogin failure, Enum err code %s" % (response.status_code))
             self.securityToken = ""
             return False        
 
@@ -367,8 +367,15 @@ class Plugin(indigo.PluginBase):
             return
 
         url =  self.apiData[brand]["service"] + '/api/v4/UserDeviceDetails/Get'
-        params = {'appId':self.apiData[brand]["appID"], 'securityToken':self.securityToken}
-        headers = {'User-Agent': userAgent }
+        params = {
+            'appId':self.apiData[brand]["appID"], 
+            'securityToken':self.securityToken
+        }
+        headers = {
+            'SecurityToken':    self.securityToken,
+            'MyQApplicationId': self.apiData[brand]["appID"],
+            'User-Agent': userAgent
+        }    
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
