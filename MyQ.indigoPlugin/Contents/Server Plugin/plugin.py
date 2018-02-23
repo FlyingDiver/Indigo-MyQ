@@ -382,7 +382,12 @@ class Plugin(indigo.PluginBase):
             self.logger.error(u"getDevices: RequestException: " + str(err))
             return
 
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception as err:
+            self.logger.error(u"getDevices: JSON decode error: " + str(err))
+            return
+            
         if data['ReturnCode'] != '0':
             self.logger.error(u"getDevices: Bad return code: " + data['ErrorMessage'])
             return
