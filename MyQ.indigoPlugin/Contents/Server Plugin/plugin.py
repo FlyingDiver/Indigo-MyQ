@@ -12,8 +12,6 @@ import logging
 from requests.auth import HTTPBasicAuth
 from requests.utils import quote
 
-from ghpu import GitHubPluginUpdater
-
 kCurDevVersCount = 1        # current version of plugin devices
 
 kDoorClose  = '0'
@@ -63,11 +61,6 @@ class Plugin(indigo.PluginBase):
                             },
                         }
 
-        self.updater = GitHubPluginUpdater(self)
-        self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
-        self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
-        self.next_update_check = time.time()
-
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
         self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
         self.next_status_check = time.time()
@@ -84,11 +77,6 @@ class Plugin(indigo.PluginBase):
 
         try:
             while True:
-
-                if self.updateFrequency > 0:
-                    if time.time() > self.next_update_check:
-                        self.updater.checkForUpdate()
-                        self.next_update_check = time.time() + self.updateFrequency
 
                 if time.time() > self.next_status_check:
                     self.getDevices()
@@ -158,14 +146,6 @@ class Plugin(indigo.PluginBase):
     # Menu Methods
     ########################################
 
-    def checkForUpdates(self):
-        self.updater.checkForUpdate()
-
-    def updatePlugin(self):
-        self.updater.update()
-
-    def forceUpdate(self):
-        self.updater.update(currentVersion='0.0.0')
 
     ########################################
     # ConfigUI methods

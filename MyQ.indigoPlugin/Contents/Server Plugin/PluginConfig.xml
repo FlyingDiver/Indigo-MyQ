@@ -24,13 +24,6 @@
     <Field id="statusDelay" type="textfield" defaultValue="30">
         <Label>Delay after MyQ command before status update (seconds):</Label>
     </Field>
-    <Field id="sep1" type="separator"/>
-    <Field id="updateFrequency" type="textfield" defaultValue="24">
-        <Label>Check for plugin update frequency (hours):</Label>
-    </Field>
-    <Field id="updateNote" type="label" fontSize="small" fontColor="darkgray">
-        <Label>The plugin will not check for updates if the frequency is set to zero.</Label>
-    </Field>
     <Field id="sep2" type="separator"/>
     <Field id="logLevel" type="menu" defaultValue="20">
         <Label>Event Logging Level:</Label>
