@@ -172,10 +172,6 @@ class Plugin(indigo.PluginBase):
         if (statusFrequency < 5) or (statusFrequency > (24 * 60)):
             errorDict['statusFrequency'] = u"Status frequency must be at least 5 min and no more than 24 hours"
 
-        updateFrequency = int(valuesDict['updateFrequency'])
-        if (updateFrequency < 0) or (updateFrequency > 24):
-            errorDict['updateFrequency'] = u"Update frequency is invalid - enter a valid number (between 0 and 24 hours)"
-
         if len(errorDict) > 0:
             return (False, valuesDict, errorDict)
 
@@ -195,10 +191,6 @@ class Plugin(indigo.PluginBase):
                 self.logLevel = logging.INFO
             self.indigo_log_handler.setLevel(self.logLevel)
             self.logger.debug(u"logLevel = " + str(self.logLevel))
-
-            self.updateFrequency = float(self.pluginPrefs.get('updateFrequency', "24")) * 60.0 * 60.0
-            self.logger.debug(u"updateFrequency = " + str(self.updateFrequency))
-            self.next_update_check = time.time()
 
             self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
             self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
