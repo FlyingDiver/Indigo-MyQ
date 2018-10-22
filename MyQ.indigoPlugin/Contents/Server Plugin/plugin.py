@@ -314,7 +314,7 @@ class Plugin(indigo.PluginBase):
         try:
             data = response.json()
         except:
-            self.logger.error(u"myqLogin failure, JSON Decode Error")
+            self.logger.error(u"myqLogin failure, JSON Decode Error: {}".format(response.text))
             self.securityToken = ""
             return False
 
