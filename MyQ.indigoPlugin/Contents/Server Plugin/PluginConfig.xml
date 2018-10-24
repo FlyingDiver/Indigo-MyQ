@@ -13,6 +13,7 @@
             <Option value="chamberlain">Chamberlain</Option>
             <Option value="craftsman">Craftsman</Option>
             <Option value="liftmaster">Liftmaster</Option>
+            <Option value="merlin">Merlin</Option>
         </List>
     </Field>
     <Field id="statusFrequency" type="textfield" defaultValue="10">

@@ -17,9 +17,9 @@ kCurDevVersCount = 1        # current version of plugin devices
 kDoorClose  = '0'
 kDoorOpen   = '1'
 
-doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected", "Unknown", "Unknown"]
+doorStateNames = ["Unknown", "Open", "Closed", "Stopped", "Opening", "Closing", "Unknown", "Disconnected", "Transition", "Open"]
 
-userAgent = "Chamberlain/3773 (iPhone; iOS 10.0.1; Scale/2.00)"
+userAgent = "Chamberlain/3773 (iPhone; iOS 11.0.3; Scale/2.00)"
 
 ################################################################################
 class Plugin(indigo.PluginBase):
@@ -51,13 +51,16 @@ class Plugin(indigo.PluginBase):
 
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
-                                "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+                                "appID" : "OA9I/hgmPHFp9RYKJqCKfwnhh28uqLJzZ9KOJf1DXoo8N2XAaVX6A1wcLYyWsnnv"
                             },
-            "craftsman" :   {   "service" : "https://craftexternal.myqdevice.com",
-                                "appID" : "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
+            "craftsman" :   {   "service" : "https://myqexternal.myqdevice.com",
+                                "appID" : "YmiMRRS1juXdSd0KWsuKtHmQvh5RftEp5iewHdCvsNB77FnQbY+vjCVn2nMdIeN8"
                             },
             "liftmaster" : {    "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i"
+                            },
+            "merlin" :      {    "service" : "https://myqexternal.myqdevice.com",
+                                "appID" : "3004cac4e920426c823fa6c2ecf0cc28ef7d4a7b74b6470f8f0d94d6c39eb718"
                             },
                         }
 
