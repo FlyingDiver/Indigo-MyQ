@@ -327,7 +327,7 @@ class Plugin(indigo.PluginBase):
             return False
 
         self.securityToken = data['SecurityToken']
-        self.logger.debug(u"myqLogin successfull")
+        self.logger.debug(u"myqLogin successful")
         self.loginOK = True
         return True
 
