@@ -5,9 +5,12 @@
         <ConfigUI>
             <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
-            <Field id="address" type="textfield"  hidden="true" />
+            <Field id="address" type="menu">
+                <Label>MyQ Opener Device:</Label>
+                <List class="self" filter="" method="availableDeviceList"/>
+            </Field>            
 			<Field id="sensor" type="menu" >
-				<Label>Sensor Device:</Label>
+				<Label>Linked Sensor Device:</Label>
 				<List class="indigo.devices" filter="indigo.sensor, indigo.iodevice" />
 			</Field>
         </ConfigUI>

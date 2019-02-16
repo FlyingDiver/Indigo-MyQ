@@ -38,17 +38,18 @@ class Plugin(indigo.PluginBase):
         except:
             self.logLevel = logging.INFO
         self.indigo_log_handler.setLevel(self.logLevel)
-        self.logger.debug(u"logLevel = " + str(self.logLevel))
-        
-        self.loginOK = False
-
+    
 
     def startup(self):
         indigo.server.log(u"Starting MyQ")
 
+        self.loginOK = False
+        self.needsUpdate = True
+
         self.myqDevices = {}
         self.triggers = { }
-
+        self.knownDevices = {}
+        
         self.apiData = {
             "chamberlain" : {   "service" : "https://myqexternal.myqdevice.com",
                                 "appID" : "OA9I/hgmPHFp9RYKJqCKfwnhh28uqLJzZ9KOJf1DXoo8N2XAaVX6A1wcLYyWsnnv"
@@ -81,11 +82,12 @@ class Plugin(indigo.PluginBase):
         try:
             while True:
 
-                if time.time() > self.next_status_check:
+                if self.needsUpdate or (time.time() > self.next_status_check):
                     self.getDevices()
                     self.next_status_check = time.time() + self.statusFrequency
+                    self.needsUpdate = False
 
-                self.sleep(60.0)
+                self.sleep(1.0)
 
         except self.stopThread:
             pass
@@ -108,7 +110,8 @@ class Plugin(indigo.PluginBase):
         self.logger.debug("deviceStartComm: Adding Device %s (%d) to MyQ device list" % (device.name, device.id))
         assert device.id not in self.myqDevices
         self.myqDevices[device.id] = device
-
+        self.needsUpdate = True
+        
     def deviceStopComm(self, device):
         self.logger.debug("deviceStopComm: Removing Device %s (%d) from MyQ device list" % (device.name, device.id))
         assert device.id in self.myqDevices
@@ -200,6 +203,22 @@ class Plugin(indigo.PluginBase):
             self.next_status_check = time.time() + self.statusFrequency
 
             self.getDevices()
+
+
+    def availableDeviceList(self, filter="", valuesDict=None, typeId="", targetId=0):
+
+        in_use =[]
+        for dev in indigo.devices.iter(filter="self.myqOpener"):
+            in_use.append(int(dev.address))
+          
+        retList =[]
+        for myqID, myqName in self.knownDevices.iteritems():
+            if myqID not in in_use:
+                retList.append((myqID, myqName))
+
+        retList.sort(key=lambda tup: tup[1])
+        return retList
+
 
     ################################################################################
     #
@@ -370,16 +389,11 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"getDevices: %d Devices" % len(data['Devices']))
 
         for myqDevice in data['Devices']:
-            self.logger.debug(u"getDevices: MyQDeviceTypeId = %s, MyQDeviceTypeName = %s, DeviceId = %s" % (myqDevice['MyQDeviceTypeId'], myqDevice['MyQDeviceTypeName'], myqDevice['MyQDeviceId']))
+            self.logger.debug(u"getDevices: MyQDeviceTypeId = {}, MyQDeviceTypeName = {}, DeviceId = {}".format(myqDevice['MyQDeviceTypeId'], myqDevice['MyQDeviceTypeName'], myqDevice['MyQDeviceId']))
 
-            # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
+            if myqDevice['MyQDeviceTypeId'] in [2, 5, 7, 17]:    # 2 = garage door, 5 = gate, 7 = MyQGarage(no gateway), 17 = Garage Door Opener WGDO
+                self.logger.threaddebug(u'getDevices, attributes = {}'.format(myqDevice['Attributes']))
 
-            if myqDevice['MyQDeviceTypeId'] == 1:            # Gateway
-                pass
-
-            elif (myqDevice['MyQDeviceTypeId'] == 2) or (myqDevice['MyQDeviceTypeId'] == 5) or (myqDevice['MyQDeviceTypeId'] == 7) or (myqDevice['MyQDeviceTypeId'] == 17):
-
-                myqID = myqDevice['MyQDeviceId']
                 state = -1
 
                 for attr in myqDevice['Attributes']:
@@ -391,63 +405,39 @@ class Plugin(indigo.PluginBase):
                     elif attr[u'AttributeDisplayName'] == u'doorstate':
                         state = int(attr[u'Value'])
 
-                name = "%s (%s)" % (descAttr, nameAttr)
+                myqID = myqDevice['MyQDeviceId']
+                if not myqID in self.knownDevices:
+                    self.knownDevices[myqID] = descAttr
 
                 if state > (len(doorStateNames) - 1):
-                    self.logger.error(u"getDevices: Opener %s (%s), state out of range: %i" % (name, myqDevice['MyQDeviceId'], state))
+                    self.logger.error(u"getDevices: Opener {}, state out of range: {}".format(myqDevice['MyQDeviceId'], state))
                     state = 0       # unknown high states
                 elif state == -1:
-                    self.logger.error(u"getDevices: Opener %s (%s), state unknown" % (name, myqDevice['MyQDeviceId']))
+                    self.logger.error(u"getDevices: Opener {}, state unknown".format(myqDevice['MyQDeviceId']))
                     state = 0       # unknown state
 
-                found = False
-                iterator = indigo.devices.iter(filter="self")
-                for dev in iterator:
-                    self.logger.debug(u'Checking Opener Device: %s (%s) against %s' % (dev.name, dev.address, myqID))
+                for dev in indigo.devices.iter(filter="self"):
+                    self.logger.debug(u'Checking Opener Device: {} ({}) against {}'.format(dev.name, dev.address, myqID))
                     if int(dev.address) == int(myqID):
-                        found = True
-                        newState = doorStateNames[state]
-                        if dev.states["doorStatus"] != newState:
-                            self.logger.info(u"%s %s is now %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, newState, state))
-                            dev.updateStateOnServer(key="doorStatus", value=newState)
+                        dev.updateStateOnServer(key="doorStatus", value=doorStateNames[state])
                         if state == 2:
                            dev.updateStateOnServer(key="onOffState", value=True)  # closed is True (Locked)
                         else:
                             dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "Unlocked"
                         self.triggerCheck(dev)
-                        break
-                        
-                if not found:
-                    self.logger.debug(u'Unknown MyQ Device: %s' % (myqID))
 
-                    # New MyQ device found, create it and set current state
+                        break                    
 
-                    try:
-                        newdev = indigo.device.create(protocol=indigo.kProtocol.Plugin,
-                            address=myqID,
-                            description = "Opener Device auto-created by MyQ plugin from gateway information",
-                            deviceTypeId='myqOpener',
-                            name=name)
-                    except Exception as err:
-                        self.logger.error(u'Error Creating Opener Device: %s (%s)' % (name, myqDevice[u'MyQDeviceId']))
-                        continue
-                    
-                    newdev.updateStateOnServer(key="doorStatus", value=doorStateNames[state])
-                    if state == 2:
-                        newdev.updateStateOnServer(key="onOffState", value=True)
-                    else:
-                        newdev.updateStateOnServer(key="onOffState", value=False)
-                    self.logger.debug(u'Created New Opener Device: %s (%s)' % (newdev.name, newdev.address))
-                    self.logger.info(u"%s %s is %s (%d)" % (myqDevice['MyQDeviceTypeName'], name, doorStateNames[state], state))
+            elif myqDevice['MyQDeviceTypeId'] == 1:            # Gateway
+                pass
 
             elif myqDevice['MyQDeviceTypeId'] == 3:            # Light Switch?
                 pass
-#                for attr in myqDevice['Attributes']:
-#                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
 
             else:
+                self.logger.debug(u'Unknown MyQ device type: {}'.format(myqDevice['MyQDeviceTypeId']))
                 for attr in myqDevice['Attributes']:
-                    self.logger.debug(u'\t"%s" = "%s"' % (attr[u'AttributeDisplayName'], attr[u'Value']))
+                    self.logger.debug(u'\t"{}" = "{}"'.format(attr[u'AttributeDisplayName'], attr[u'Value']))
 
 
     ########################################
