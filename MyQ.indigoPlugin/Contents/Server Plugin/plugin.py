@@ -210,14 +210,22 @@ class Plugin(indigo.PluginBase):
         in_use =[]
         for dev in indigo.devices.iter(filter="self.myqOpener"):
             in_use.append(int(dev.address))
-          
+
         retList =[]
         for myqID, myqName in self.knownDevices.iteritems():
             if myqID not in in_use:
                 retList.append((myqID, myqName))
 
-        retList.sort(key=lambda tup: tup[1])
+        if targetId:
+            try:
+                dev = indigo.devices[targetId]
+                retList.insert(0, (dev.pluginProps["address"], self.knownDevices[int(dev.pluginProps["address"])]))
+            except:
+                pass
+
+        self.logger.debug("availableDeviceList: retList = {}".format(retList))
         return retList
+
 
 
     ################################################################################
