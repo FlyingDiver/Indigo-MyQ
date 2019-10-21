@@ -18,13 +18,13 @@
             <State id="doorStatus">
                 <ValueType>
                     <List>
-                        <Option value="Open">Open</Option>
-                        <Option value="Closed">Closed</Option>
-                        <Option value="Stopped">Stopped</Option>
-                        <Option value="Opening">Opening</Option>
-                        <Option value="Closing">Closing</Option>
-                        <Option value="Unknown">Unknown</Option>
-                        <Option value="Disconnected">Disconnected</Option>
+                        <Option value="open">Open</Option>
+                        <Option value="closed">Closed</Option>
+                        <Option value="stopped">Stopped</Option>
+                        <Option value="opening">Opening</Option>
+                        <Option value="closing">Closing</Option>
+                        <Option value="unknown">Unknown</Option>
+                        <Option value="transition">Transition</Option>
                     </List>
                 </ValueType>
                 <TriggerLabel>Door Status Changed</TriggerLabel>

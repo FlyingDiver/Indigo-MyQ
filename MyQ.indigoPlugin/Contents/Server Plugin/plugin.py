@@ -435,17 +435,17 @@ class Plugin(indigo.PluginBase):
     def changeDevice(self, device, action_command):
         self.logger.debug(u"{}: changeDevice: new state = {}".format(device.name, action_command))
        
-#        url = "{}/Accounts/{}/Devices/{}/{}".format(API_BASE, self.account_id, device.address, action_command)
         url = "{}/Accounts/{}/Devices/{}/actions".format(API_BASE, self.account_id, device.address)
+        data = {
+            "action_type": action_command
+        }        
         headers = {
             'SecurityToken':    self.securityToken,
             'User-Agent':       userAgent, 
             'Content-Type':     "application/json",
             'MyQApplicationId': APP_ID
         }    
-        data = {
-            "action_type": action_command
-        }        
+        self.logger.threaddebug(u"{}: changeDevice: url = {}, data = = {}, headers = = {}".format(device.name, url, data, headers))
         try:
             response = requests.put(url, json=data, headers=headers)
         except requests.exceptions.RequestException as err:
@@ -453,9 +453,9 @@ class Plugin(indigo.PluginBase):
             return
 
         if (response.status_code != requests.codes.no_content):
-            self.logger.error(u"{}: changeDevice failure, Request error code: {}".format(device.name, response.status_code))
+            self.logger.error(u"{}: changeDevice failure, code: {}, response: {}".format(device.name, response.status_code, response.text))
             return
-            s
+
         # schedule an update to check on the movement
         self.next_status_check = time.time() + float(self.pluginPrefs.get('statusDelay', "30"))
 
