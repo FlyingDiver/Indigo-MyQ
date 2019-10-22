@@ -5,8 +5,9 @@
 import time
 import requests
 import logging
+import json
 
-kCurDevVersCount = 1        # current version of plugin devices
+kCurDevVersCount = 2        # current version of plugin devices
 
 API_BASE  = "https://api.myqdevice.com/api/v5"
 APP_ID    = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
@@ -99,7 +100,7 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"deviceStartComm: Updated " + device.name + " to version " + str(kCurDevVersCount))
         else:
             self.logger.error(u"deviceStartComm: Unknown device version: " + str(instanceVers) + " for device " + device.name)
-
+        
         self.logger.debug("deviceStartComm: Adding Device %s (%d) to MyQ device list" % (device.name, device.id))
         assert device.id not in self.myqDevices
         self.myqDevices[device.id] = device
@@ -145,6 +146,12 @@ class Plugin(indigo.PluginBase):
     # Menu Methods
     ########################################
 
+    def menuDumpMyQ(self):
+        self.logger.debug(u"menuDumpMyQ")
+        self.logger.debug("menuDumpMyQ Account:\n{}".format(json.dumps(self.account_info, sort_keys=True, indent=4, separators=(',', ': '))))
+        self.logger.debug("menuDumpMyQ Devices:\n{}".format(json.dumps(self.device_info, sort_keys=True, indent=4, separators=(',', ': '))))
+        return True
+        
 
     ########################################
     # ConfigUI methods
@@ -212,13 +219,12 @@ class Plugin(indigo.PluginBase):
         if targetId:
             try:
                 dev = indigo.devices[targetId]
-                retList.insert(0, (dev.pluginProps["address"], self.knownDevices[int(dev.pluginProps["address"])]))
+                retList.insert(0, (dev.pluginProps["address"], self.knownDevices[dev.pluginProps["address"]]))
             except:
                 pass
 
         self.logger.debug("availableDeviceList: retList = {}".format(retList))
         return retList
-
 
 
     ################################################################################

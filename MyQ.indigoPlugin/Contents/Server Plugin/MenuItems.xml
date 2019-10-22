@@ -5,4 +5,8 @@
         <Name>Update Device Status</Name>
         <CallbackMethod>getDevices</CallbackMethod>
     </MenuItem>
+    <MenuItem id="menu3">
+        <Name>Write MyQ Data to Log</Name>
+        <CallbackMethod>menuDumpMyQ</CallbackMethod>
+    </MenuItem>
 </MenuItems>
