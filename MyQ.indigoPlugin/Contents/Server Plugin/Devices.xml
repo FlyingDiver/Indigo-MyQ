@@ -5,6 +5,7 @@
         <ConfigUI>
             <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
+            <Field type="textfield" id="myqID" hidden="true" />  
             <Field id="address" type="menu">
                 <Label>MyQ Opener Device:</Label>
                 <List class="self" filter="" method="availableDeviceList"/>

@@ -7,7 +7,7 @@ import requests
 import logging
 import json
 
-kCurDevVersCount = 2        # current version of plugin devices
+kCurDevVersCount = 2       # current version of plugin devices
 
 API_BASE  = "https://api.myqdevice.com/api/v5"
 APP_ID    = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
@@ -56,7 +56,7 @@ class Plugin(indigo.PluginBase):
         self.knownDevices = {}
         
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
-        self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
+        self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
         self.next_status_check = time.time()
 
         # Watch for changes to sensors associated with an opener
@@ -64,7 +64,6 @@ class Plugin(indigo.PluginBase):
 
     @property
     def account_id(self):
-        """Return the account ID."""
         return self.account_info["Account"]["Id"]
 
     def shutdown(self):
@@ -88,37 +87,48 @@ class Plugin(indigo.PluginBase):
 
     def deviceStartComm(self, device):
 
+        myqID = device.pluginProps.get("myqID", None)
+        if myqID != device.address:
+            newProps = device.pluginProps
+            newProps["address"] = myqID
+            device.replacePluginPropsOnServer(newProps)
+            self.logger.debug(u"{}: deviceStartComm: updated address to myqID {}".format(device.name, myqID))
+
         instanceVers = int(device.pluginProps.get('devVersCount', 0))
         if instanceVers >= kCurDevVersCount:
-            self.logger.debug(u"deviceStartComm: " + device.name + u": Device Version is up to date")
+            self.logger.debug(u"{}: deviceStartComm: Device version is up to date ({})".format(device.name, instanceVers))
         elif instanceVers < kCurDevVersCount:
             newProps = device.pluginProps
             newProps['IsLockSubType'] = True
             newProps["devVersCount"] = kCurDevVersCount
             device.replacePluginPropsOnServer(newProps)
             device.stateListOrDisplayStateIdChanged()
-            self.logger.debug(u"deviceStartComm: Updated " + device.name + " to version " + str(kCurDevVersCount))
+            self.logger.debug(u"{}: deviceStartComm: Updated to device version {}, props = {}".format(device.name, kCurDevVersCount, newProps))
         else:
-            self.logger.error(u"deviceStartComm: Unknown device version: " + str(instanceVers) + " for device " + device.name)
+            self.logger.error(u"{}: deviceStartComm: Unknown device version: {}".format(device.name, instanceVers))
         
-        self.logger.debug("deviceStartComm: Adding Device %s (%d) to MyQ device list" % (device.name, device.id))
+        self.logger.debug("{}: deviceStartComm: Adding device ({}) to MyQ device list".format(device.name, device.id))
         assert device.id not in self.myqDevices
         self.myqDevices[device.id] = device
         self.needsUpdate = True
         
     def deviceStopComm(self, device):
-        self.logger.debug("deviceStopComm: Removing Device %s (%d) from MyQ device list" % (device.name, device.id))
+        self.logger.debug("{}: deviceStopComm: Removing device ({}) from MyQ device list".format(device.name, device.id))
         assert device.id in self.myqDevices
         del self.myqDevices[device.id]
 
+    def validateDeviceConfigUi(self, valuesDict, typeId, devId):
+        valuesDict['myqID'] = valuesDict['address']
+        return (True, valuesDict)
+
 
     def triggerStartProcessing(self, trigger):
-        self.logger.debug("Adding Trigger %s (%d) - %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+        self.logger.debug("Adding Trigger {} ({}) - {}".format(trigger.name, trigger.id, trigger.pluginTypeId))
         assert trigger.id not in self.triggers
         self.triggers[trigger.id] = trigger
 
     def triggerStopProcessing(self, trigger):
-        self.logger.debug("Removing Trigger %s (%d)" % (trigger.name, trigger.id))
+        self.logger.debug("Removing Trigger {} ({})".format(trigger.name, trigger.id))
         assert trigger.id in self.triggers
         del self.triggers[trigger.id]
 
@@ -130,13 +140,13 @@ class Plugin(indigo.PluginBase):
             return
 
         for triggerId, trigger in sorted(self.triggers.iteritems()):
-            self.logger.debug("Checking Trigger %s (%s), Type: %s" % (trigger.name, trigger.id, trigger.pluginTypeId))
+            self.logger.debug("Checking Trigger {} ({}), Type: {}".format(trigger.name, trigger.id, trigger.pluginTypeId))
             if isinstance(sensor, indigo.SensorDevice):
                 sensor_state = sensor.onState
             elif isinstance(sensor, indigo.MultiIODevice):
                 sensor_state = not sensor.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
             
-            self.logger.debug("\tmyqDoorSync:  %s is %s, linked sensor %s is %s" % (device.name, str(device.onState), sensor.name, str(sensor_state)))
+            self.logger.debug("\tmyqDoorSync:  {} is {}, linked sensor {} is {}".format(device.name, str(device.onState), sensor.name, str(sensor_state)))
 
             if device.onState == sensor_state:        # these values are supposed to be opposite due to difference between sensor and lock devices
                 indigo.trigger.execute(trigger)         # so execute the out of sync trigger when they're not opposite
@@ -199,7 +209,7 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"logLevel = " + str(self.logLevel))
 
             self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
-            self.logger.debug(u"statusFrequency = " + str(self.statusFrequency))
+            self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
             self.next_status_check = time.time() + self.statusFrequency
 
             self.getDevices()
@@ -249,7 +259,7 @@ class Plugin(indigo.PluginBase):
                 return
                 
             if dev.id == sensorID:
-                self.logger.info(u"A device (%s) that was associated with a MyQ device has been deleted." % dev.name)
+                self.logger.info(u"A device ({}) that was associated with a MyQ device has been deleted.".format(dev.name))
                 newProps = myqDevice.pluginProps
                 newProps["sensor"] = ""
                 myqDevice.replacePluginPropsOnServer(newProps)
@@ -272,13 +282,13 @@ class Plugin(indigo.PluginBase):
                         old_sensor_state =  not origDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
                         sensor_state = not newDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
                     else:    
-                        self.logger.error(u"deviceUpdated: unknown device type for %s" % origDev.name)
+                        self.logger.error(u"deviceUpdated: unknown device type for {}".format(origDev.name))
                         
                     if old_sensor_state == sensor_state:
-                        self.logger.debug(u"deviceUpdated: %s has not changed" % origDev.name)
+                        self.logger.debug(u"deviceUpdated: {} has not changed".format(origDev.name))
                         return
 
-                    self.logger.debug(u"deviceUpdated: %s has changed state: %s" % (origDev.name, str(sensor_state)))
+                    self.logger.debug(u"deviceUpdated: {} has changed state: {}".format(origDev.name, sensor_state))
                     if sensor_state:
                         myqDevice.updateStateOnServer(key="onOffState", value=False)   # sensor "On" means the door's open, which is False for lock type devices (unlocked)
                     else:
@@ -382,7 +392,7 @@ class Plugin(indigo.PluginBase):
         try:
             response = requests.get(url, params=params, headers=headers)
         except requests.exceptions.RequestException as err:
-            self.logger.error(u"getDevices: RequestException: " + str(err))
+            self.logger.error(u"getDevices: RequestException: {}".format(err))
             return
 
         self.device_info = response.json()
@@ -435,7 +445,7 @@ class Plugin(indigo.PluginBase):
             elif myqActionId == "closeDoor":
                 self.changeDevice(myqDevice, COMMAND_CLOSE)
             else:
-                self.logger.debug(u"changeDeviceAction, unknown myqActionId = %s" % myqActionId)
+                self.logger.debug(u"changeDeviceAction, unknown myqActionId = {}".format(myqActionId))
 
 
     def changeDevice(self, device, action_command):
