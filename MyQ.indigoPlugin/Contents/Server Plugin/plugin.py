@@ -449,6 +449,11 @@ class Plugin(indigo.PluginBase):
 
 
     def changeDevice(self, device, action_command):
+
+        if not self.myqLogin(username = self.pluginPrefs.get('myqLogin', None), password = self.pluginPrefs.get('myqPassword', None)):
+            self.logger.debug(u"changeDevice: MyQ Login Failure")
+            return
+
         self.logger.debug(u"{}: changeDevice: new state = {}".format(device.name, action_command))
        
         url = "{}/Accounts/{}/Devices/{}/actions".format(API_BASE, self.account_id, device.address)
