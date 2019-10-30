@@ -11,7 +11,6 @@ kCurDevVersCount = 2       # current version of plugin devices
 
 API_BASE  = "https://api.myqdevice.com/api/v5"
 APP_ID    = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
-userAgent = "Chamberlain/3.73"
 
 COMMAND_CLOSE = "close"
 COMMAND_OPEN = "open"
@@ -325,7 +324,6 @@ class Plugin(indigo.PluginBase):
 
         url = "{}/{}".format(API_BASE, 'Login')
         headers = {
-                'User-Agent':       userAgent, 
                 'Content-Type':     'application/json',
                 'MyQApplicationId': APP_ID
         }
@@ -354,7 +352,6 @@ class Plugin(indigo.PluginBase):
         
         url = "{}/{}".format(API_BASE, 'My')
         headers = {
-                'User-Agent':       userAgent, 
                 "Content-Type":     "application/json",
                 'MyQApplicationId': APP_ID,
                 'SecurityToken':    self.securityToken
@@ -385,7 +382,6 @@ class Plugin(indigo.PluginBase):
         }
         headers = {
             'SecurityToken':    self.securityToken,
-            'User-Agent':       userAgent, 
             'Content-Type':     "application/json",
             'MyQApplicationId': APP_ID
         }    
@@ -462,7 +458,6 @@ class Plugin(indigo.PluginBase):
         }        
         headers = {
             'SecurityToken':    self.securityToken,
-            'User-Agent':       userAgent, 
             'Content-Type':     "application/json",
             'MyQApplicationId': APP_ID
         }    
