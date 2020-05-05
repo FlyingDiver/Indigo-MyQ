@@ -9,7 +9,10 @@ import json
 
 kCurDevVersCount = 2       # current version of plugin devices
 
-API_BASE  = "https://api.myqdevice.com/api/v5"
+BASE_API_VERSION = 5
+DEVICES_API_VERSION = 5.1
+
+API_BASE  = "https://api.myqdevice.com/api/v"
 APP_ID    = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
 
 COMMAND_CLOSE = "close"
@@ -81,7 +84,7 @@ class Plugin(indigo.PluginBase):
 
                 self.sleep(1.0)
 
-        except self.stopThread:
+        except self.StopThread:
             pass
 
     def deviceStartComm(self, device):
@@ -322,7 +325,7 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"myqLogin failure, Username or Password not set")
             return False
 
-        url = "{}/{}".format(API_BASE, 'Login')
+        url = "{}{}/{}".format(API_BASE, BASE_API_VERSION, 'Login')
         headers = {
                 'Content-Type':     'application/json',
                 'MyQApplicationId': APP_ID
@@ -346,11 +349,16 @@ class Plugin(indigo.PluginBase):
             self.securityToken = ""
             return False        
 
-        self.securityToken = response.json()['SecurityToken']
+        try:
+            self.securityToken = response.json()['SecurityToken']
+        except:
+            self.logger.debug(u"myqLogin failure, json decode failure")
+            return False
+
         self.logger.debug(u"myqLogin successful")
         self.loginOK = True
         
-        url = "{}/{}".format(API_BASE, 'My')
+        url = "{}{}/{}".format(API_BASE, BASE_API_VERSION, 'My')
         headers = {
                 "Content-Type":     "application/json",
                 'MyQApplicationId': APP_ID,
@@ -377,7 +385,7 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"getDevices: MyQ Login Failure")
             return
 
-        url = "{}/Accounts/{}/Devices".format(API_BASE, self.account_id)
+        url = "{}{}/Accounts/{}/Devices".format(API_BASE, DEVICES_API_VERSION, self.account_id)
         params = {
         }
         headers = {
@@ -452,7 +460,7 @@ class Plugin(indigo.PluginBase):
 
         self.logger.debug(u"{}: changeDevice: new state = {}".format(device.name, action_command))
        
-        url = "{}/Accounts/{}/Devices/{}/actions".format(API_BASE, self.account_id, device.address)
+        url = "{}{}/Accounts/{}/Devices/{}/actions".format(API_BASE, DEVICES_API_VERSION, self.account_id, device.address)
         data = {
             "action_type": action_command
         }        
