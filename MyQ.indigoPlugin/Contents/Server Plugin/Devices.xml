@@ -24,6 +24,7 @@
                         <Option value="stopped">Stopped</Option>
                         <Option value="opening">Opening</Option>
                         <Option value="closing">Closing</Option>
+                        <Option value="autoreverse">Unknown</Option>
                         <Option value="unknown">Unknown</Option>
                         <Option value="transition">Transition</Option>
                     </List>
