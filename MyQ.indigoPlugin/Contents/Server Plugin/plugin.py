@@ -11,11 +11,12 @@ kCurDevVersCount = 2       # current version of plugin devices
 
 BASE_API_VERSION = 5
 DEVICES_API_VERSION = 5.1
-DEFAULT_USER_AGENT = "okhttp/3.10.0"
+DEFAULT_USER_AGENT = "myq-indigo"
 DEFAULT_BRAND_ID = 2
 DEFAULT_CULTURE = "en"
 
 API_BASE  = "https://api.myqdevice.com/api/v"
+#API_BASE  = "partner-identity.myq-cloud.com/api/v"
 APP_ID    = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
 
 COMMAND_CLOSE = "close"
@@ -333,10 +334,10 @@ class Plugin(indigo.PluginBase):
         headers = {
                 'Content-Type':     'application/json',
                 'MyQApplicationId': APP_ID,
-                'user-agent': 'okhttp/3.10.0',
-                "ApiVersion": str(DEVICES_API_VERSION),
-                "BrandId": str(DEFAULT_BRAND_ID),
-                "Culture": DEFAULT_CULTURE
+                'user-agent':       DEFAULT_USER_AGENT,
+                "ApiVersion":       str(DEVICES_API_VERSION),
+                "BrandId":          str(DEFAULT_BRAND_ID),
+                "Culture":          DEFAULT_CULTURE
         }
         payload = {
                 'Username': username, 
@@ -371,10 +372,10 @@ class Plugin(indigo.PluginBase):
                 "Content-Type":     "application/json",
                 'MyQApplicationId': APP_ID,
                 'SecurityToken':    self.securityToken,
-                'user-agent': 'okhttp/3.10.0',
-                "ApiVersion": str(DEVICES_API_VERSION),
-                "BrandId": str(DEFAULT_BRAND_ID),
-                "Culture": DEFAULT_CULTURE
+                'user-agent':       DEFAULT_USER_AGENT,
+                "ApiVersion":       str(DEVICES_API_VERSION),
+                "BrandId":          str(DEFAULT_BRAND_ID),
+                "Culture":          DEFAULT_CULTURE
         }
         params = {"expand": "account"}        
 
@@ -404,10 +405,10 @@ class Plugin(indigo.PluginBase):
             'SecurityToken':    self.securityToken,
             'Content-Type':     "application/json",
             'MyQApplicationId': APP_ID,
-            'user-agent': 'okhttp/3.10.0',
-            "ApiVersion": str(DEVICES_API_VERSION),
-            "BrandId": str(DEFAULT_BRAND_ID),
-            "Culture": DEFAULT_CULTURE
+            'user-agent':       DEFAULT_USER_AGENT,
+            "ApiVersion":       str(DEVICES_API_VERSION),
+            "BrandId":          str(DEFAULT_BRAND_ID),
+            "Culture":          DEFAULT_CULTURE
         }    
         try:
             response = requests.get(url, params=params, headers=headers)
@@ -484,10 +485,10 @@ class Plugin(indigo.PluginBase):
             'SecurityToken':    self.securityToken,
             'Content-Type':     "application/json",
             'MyQApplicationId': APP_ID,
-            'user-agent': 'okhttp/3.10.0',
-            "ApiVersion": str(DEVICES_API_VERSION),
-            "BrandId": str(DEFAULT_BRAND_ID),
-            "Culture": DEFAULT_CULTURE
+            'user-agent':       DEFAULT_USER_AGENT,
+            "ApiVersion":       str(DEVICES_API_VERSION),
+            "BrandId":          str(DEFAULT_BRAND_ID),
+            "Culture":          DEFAULT_CULTURE
         }    
         self.logger.threaddebug(u"{}: changeDevice: url = {}, data = = {}, headers = = {}".format(device.name, url, data, headers))
         try:
