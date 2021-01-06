@@ -416,6 +416,10 @@ class Plugin(indigo.PluginBase):
             self.logger.error(u"getDevices: RequestException: {}".format(err))
             return
 
+        if (response.status_code != requests.codes.ok):
+            self.logger.warning(u"getDevices failure, status_code = {}".format(response.status_code))
+            return      
+
         self.device_info = response.json()
         self.logger.threaddebug(u"getDevices device_info = {}".format(self.device_info))
         self.logger.debug(u"getDevices: {} Devices".format(len(self.device_info['items'])))
