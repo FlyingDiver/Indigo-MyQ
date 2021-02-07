@@ -17,3 +17,9 @@ This plugin only works under Indigo 7 or greater.
 
 This version now uses the Indigo 7 "Lock" device type.  So a closed door is "Locked" and anything else 
 (open, moving, unknown) is "Unlocked".  I'd prefer an Open/Close semantic, but Indigo doesn't support that at this time.
+
+
+sudo /usr/bin/pip3 install aiohttp
+sudo /usr/bin/pip3 install bs4
+sudo /usr/bin/pip3 install pkce
+
