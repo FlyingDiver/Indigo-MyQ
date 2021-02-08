@@ -3,7 +3,6 @@
     <Device type="relay" id="myqOpener">
         <Name>MyQ Door Opener</Name>
         <ConfigUI>
-            <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
             <Field type="textfield" id="myqID" hidden="true" />  
             <Field id="address" type="menu">
@@ -36,5 +35,15 @@
             </State>
         </States>
         <UiDisplayStateId>doorStatus</UiDisplayStateId>
+    </Device>
+    <Device type="relay" id="myLight">
+        <Name>MyQ Light</Name>
+        <ConfigUI>
+            <Field type="textfield" id="myqID" hidden="true" />  
+            <Field id="address" type="menu">
+                <Label>MyQ Light Device:</Label>
+                <List class="self" filter="" method="availableDeviceList"/>
+            </Field>            
+        </ConfigUI>
     </Device>
 </Devices>

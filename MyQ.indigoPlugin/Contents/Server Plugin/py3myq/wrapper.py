@@ -137,7 +137,22 @@ async def main(args) -> None:
                             msg_write(json.dumps({'msg': 'status', 'status': f"Failed to close garage door {device.name}."}))
 
 
+            elif cmd == 'turnon':
+                device = api.devices[request['id']]
+                try:
+                    msg_write(json.dumps({'msg': 'status', 'status': f"Turning lamp {device.name} on"}))
+                    await device.turnon()
 
+                except RequestError as err:
+                    msg_write(json.dumps({'msg': 'error', 'error': f"Error when trying to turn on {device.name}: {str(err)}"}))
+                     
+            elif cmd == 'turnoff':
+                device = api.devices[request['id']]
+                try:
+                    msg_write(json.dumps({'msg': 'status', 'status': f"Turning lamp {device.name} off"}))
+                    await device.turnoff()
+                except RequestError as err:
+                    msg_write(json.dumps({'msg': 'error', 'error': f"Error when trying to turn off {device.name}: {str(err)}"}))
 
     
 # actual start of the program

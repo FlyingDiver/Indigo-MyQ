@@ -13,9 +13,6 @@ from threading import Thread
 
 kCurDevVersCount = 2       # current version of plugin devices
 
-COMMAND_CLOSE = "close"
-COMMAND_OPEN = "open"
-
 STATE_CLOSED = "closed"
 STATE_CLOSING = "closing"
 STATE_OPEN = "open"
@@ -48,12 +45,12 @@ class Plugin(indigo.PluginBase):
 
         self.loginOK = False
         self.needsUpdate = False
-        self.account_info = {}
-        self.device_info = {}
-
-        self.myqDevices = {}
         self.triggers = { }
-        self.knownDevices = {}
+
+        self.myqOpeners = {}
+        self.myqLamps = {}
+        self.knownOpeners = {}
+        self.knownLamps = {}
         
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
         self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
@@ -96,15 +93,18 @@ class Plugin(indigo.PluginBase):
         self.logger.debug(u"Send pymyq message: {}".format(msg))
         self.pymyq.stdin.write(u"{}\n".format(msg))
 
+
     def pymyq_read(self):
-        
         while True:
             msg = self.pymyq.stdout.readline()
-            self.logger.debug(u"subprocess output: {}".format(msg.rstrip()))
+            self.logger.debug(u"Received pymyq message: {}".format(msg.rstrip()))
             
             data = json.loads(msg)
             if data['msg'] == 'status':
                 self.logger.info(data['status'])  
+                
+            elif data['msg'] == 'error':
+                self.logger.error(data['error'])  
                 
             elif data['msg'] == 'account':
                 self.logger.debug(u"pymyq_read: account ID = {}, name = {}".format(data['id'], data['name']))
@@ -121,8 +121,8 @@ class Plugin(indigo.PluginBase):
             
                 if family == u'garagedoor':
 
-                    if not myqID in self.knownDevices:
-                        self.knownDevices[myqID] = name
+                    if not myqID in self.knownOpeners:
+                        self.knownOpeners[myqID] = name
                     
                     for dev in indigo.devices.iter(filter="self"):
                         self.logger.debug(u'Checking Opener Device: {} ({}) against {}'.format(dev.name, dev.address, myqID))
@@ -135,9 +135,18 @@ class Plugin(indigo.PluginBase):
                             self.triggerCheck(dev)
                             break                    
 
+                elif family == u'lamp':
+                     if not myqID in self.knownLamps:
+                        self.knownLamps[myqID] = name
+                    
+               
  
     def requestUpdate(self):
-        cmd = {'cmd': 'covers'}      # only do this device type for now
+        cmd = {'cmd': 'covers'} 
+        self.pymyq_write(json.dumps(cmd))
+        cmd = {'cmd': 'lamps'} 
+        self.pymyq_write(json.dumps(cmd))
+        cmd = {'cmd': 'gateways'}
         self.pymyq_write(json.dumps(cmd))
     
       
@@ -168,14 +177,14 @@ class Plugin(indigo.PluginBase):
             self.logger.error(u"{}: deviceStartComm: Unknown device version: {}".format(device.name, instanceVers))
         
         self.logger.debug("{}: deviceStartComm: Adding device ({}) to MyQ device list".format(device.name, device.id))
-        assert device.id not in self.myqDevices
-        self.myqDevices[device.id] = device
+        assert device.id not in self.myqOpeners
+        self.myqOpeners[device.id] = device
         self.needsUpdate = True
         
     def deviceStopComm(self, device):
         self.logger.debug("{}: deviceStopComm: Removing device ({}) from MyQ device list".format(device.name, device.id))
-        assert device.id in self.myqDevices
-        del self.myqDevices[device.id]
+        assert device.id in self.myqOpeners
+        del self.myqOpeners[device.id]
 
     def validateDeviceConfigUi(self, valuesDict, typeId, devId):
         valuesDict['myqID'] = valuesDict['address']
@@ -218,8 +227,8 @@ class Plugin(indigo.PluginBase):
 
     def menuDumpMyQ(self):
         self.logger.debug(u"menuDumpMyQ")
-        self.logger.debug("menuDumpMyQ Account:\n{}".format(json.dumps(self.account_info, sort_keys=True, indent=4, separators=(',', ': '))))
-        self.logger.debug("menuDumpMyQ Devices:\n{}".format(json.dumps(self.device_info, sort_keys=True, indent=4, separators=(',', ': '))))
+        self.logger.debug("menuDumpMyQ Openers:\n{}".format(json.dumps(self.myqOpeners, sort_keys=True, indent=4, separators=(',', ': '))))
+        self.logger.debug("menuDumpMyQ Lamps:\n{}".format(json.dumps(self.myqLamps, sort_keys=True, indent=4, separators=(',', ': '))))
         return True
         
 
@@ -275,14 +284,14 @@ class Plugin(indigo.PluginBase):
             in_use.append(dev.address)
 
         retList =[]
-        for myqID, myqName in self.knownDevices.iteritems():
+        for myqID, myqName in self.knownOpeners.iteritems():
             if myqID not in in_use:
                 retList.append((myqID, myqName))
 
         if targetId:
             try:
                 dev = indigo.devices[targetId]
-                retList.insert(0, (dev.pluginProps["address"], self.knownDevices[dev.pluginProps["address"]]))
+                retList.insert(0, (dev.pluginProps["address"], self.knownOpeners[dev.pluginProps["address"]]))
             except:
                 pass
 
@@ -300,7 +309,7 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.deviceDeleted(self, dev)
         self.logger.debug(u"deviceDeleted: %s " % dev.name)
 
-        for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
+        for myqDeviceId, myqDevice in sorted(self.myqOpeners.iteritems()):
             try:
                 sensorDev = myqDevice.pluginProps["sensor"]
             except:
@@ -321,7 +330,7 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, origDev, newDev):
         indigo.PluginBase.deviceUpdated(self, origDev, newDev)
 
-        for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
+        for myqDeviceId, myqDevice in sorted(self.myqOpeners.iteritems()):
             try:
                 sensorDev = int(myqDevice.pluginProps["sensor"])
             except:
@@ -360,6 +369,16 @@ class Plugin(indigo.PluginBase):
         elif action.deviceAction == indigo.kDeviceAction.Lock:
             self.logger.debug(u"actionControlDevice: Lock {}".format(dev.name))
             cmd = {'cmd': 'close', 'id': dev.address} 
+            self.pymyq_write(json.dumps(cmd))
+
+        if action.deviceAction == indigo.kDeviceAction.TurnOn:
+            self.logger.debug(u"actionControlDevice: TurnOn {}".format(dev.name))
+            cmd = {'cmd': 'turnon', 'id': dev.address} 
+            self.pymyq_write(json.dumps(cmd))
+
+        elif action.deviceAction == indigo.kDeviceAction.TurnOff:
+            self.logger.debug(u"actionControlDevice: TurnOff {}".format(dev.name))
+            cmd = {'cmd': 'turnoff', 'id': dev.address} 
             self.pymyq_write(json.dumps(cmd))
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
