@@ -7,20 +7,11 @@ import requests
 import logging
 import json
 
+from subprocess import Popen, PIPE
+from threading import Thread
+
+
 kCurDevVersCount = 2       # current version of plugin devices
-
-BASE_API_VERSION = 5
-DEVICES_API_VERSION = 5.1
-DEFAULT_USER_AGENT = "myq-indigo"
-DEFAULT_BRAND_ID = 2
-DEFAULT_CULTURE = "en"
-
-API_BASE  = "https://api.myqdevice.com/api/v"
-#API_BASE  = "partner-identity.myq-cloud.com/api/v"
-APP_ID    = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
-
-COMMAND_CLOSE = "close"
-COMMAND_OPEN = "open"
 
 STATE_CLOSED = "closed"
 STATE_CLOSING = "closing"
@@ -49,33 +40,40 @@ class Plugin(indigo.PluginBase):
             self.logLevel = logging.INFO
         self.indigo_log_handler.setLevel(self.logLevel)
     
-
     def startup(self):
         indigo.server.log(u"Starting MyQ")
 
         self.loginOK = False
-        self.needsUpdate = True
-        self.account_info = {}
-        self.device_info = {}
-
-        self.myqDevices = {}
+        self.needsUpdate = False
         self.triggers = { }
-        self.knownDevices = {}
+
+        self.myqOpeners = {}
+        self.myqLamps = {}
+        
+        self.knownOpeners = {}
+        self.knownLamps = {}
+        
+        self.device_info = {}
         
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
         self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
-        self.next_status_check = time.time()
+        self.next_status_check = time.time() + 10.0     # wait for subprocess to start up
 
         # Watch for changes to sensors associated with an opener
         indigo.devices.subscribeToChanges()
 
-    @property
-    def account_id(self):
-        return self.account_info["Account"]["Id"]
-
+        # Start up the pymyq wrapper task            
+        self.pymyq = Popen(['/usr/bin/python3', './py3myq/wrapper.py', self.pluginPrefs['myqLogin'], self.pluginPrefs['myqPassword']], 
+                                stdin=PIPE, stdout=PIPE, close_fds=True, bufsize=1, universal_newlines=True)
+                                
+        # start up the reader thread        
+        self.read_thread = Thread(target=self.pymyq_read)
+        self.read_thread.daemon = True
+        self.read_thread.start()
+        
     def shutdown(self):
-        indigo.server.log(u"Shutting down MyQ")
-
+        indigo.server.log(u"Stopping MyQ")
+        self.pymyq.terminate()
 
     def runConcurrentThread(self):
 
@@ -83,14 +81,83 @@ class Plugin(indigo.PluginBase):
             while True:
 
                 if self.needsUpdate or (time.time() > self.next_status_check):
-                    self.getDevices()
                     self.next_status_check = time.time() + self.statusFrequency
                     self.needsUpdate = False
-
+                    self.requestUpdate()     # only do this device type for now
+                                    
                 self.sleep(1.0)
 
         except self.StopThread:
             pass
+
+################################################################################
+
+    def pymyq_write(self, msg):
+        self.logger.threaddebug(u"Send pymyq message: {}".format(msg))
+        self.pymyq.stdin.write(u"{}\n".format(msg))
+
+
+    def pymyq_read(self):
+        while True:
+            msg = self.pymyq.stdout.readline()
+            self.logger.threaddebug(u"Received pymyq message: {}".format(msg.rstrip()))
+            
+            data = json.loads(msg)
+            if data['msg'] == 'status':
+                self.logger.info(data['status'])  
+                
+            elif data['msg'] == 'error':
+                self.logger.error(data['error'])  
+                
+            elif data['msg'] == 'account':
+                self.logger.debug(u"pymyq_read: account ID = {}, name = {}".format(data['id'], data['name']))
+            
+            elif data['msg'] == 'device':            
+                name = data['props']['name']
+                myqID = data['props']['serial_number']
+                family = data['props']['device_family']
+                self.logger.debug(u"pymyq_read: device ID = {}, name = {}, family = {}".format(myqID, name, family))
+            
+                self.device_info[myqID] = data['props']
+                
+                if family == u'garagedoor':
+
+                    state = data['props']['state']['door_state']
+                    self.logger.debug(u"pymyq_read: door state = {}".format(state))
+
+                    if not myqID in self.knownOpeners:
+                        self.knownOpeners[myqID] = name
+                    
+                    for dev in indigo.devices.iter(filter="self"):
+                        self.logger.debug(u'Checking Opener Device: {} ({}) against {}'.format(dev.name, dev.address, myqID))
+                        if dev.address == myqID:
+                            dev.updateStateOnServer(key="doorStatus", value=state)
+                            if state == STATE_CLOSED:
+                               dev.updateStateOnServer(key="onOffState", value=True)  # closed is True (Locked)
+                            else:
+                                dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "Unlocked"
+                            self.triggerCheck(dev)
+                            break                    
+
+                elif family == u'lamp':
+                    state = data['props']['state']['lamp_state']
+                    self.logger.debug(u"pymyq_read: lamp state = {}".format(state))
+
+                    if not myqID in self.knownLamps:
+                        self.knownLamps[myqID] = name
+                    
+               
+ 
+    def requestUpdate(self):
+        cmd = {'cmd': 'accounts'} 
+        self.pymyq_write(json.dumps(cmd))
+        cmd = {'cmd': 'devices'} 
+        self.pymyq_write(json.dumps(cmd))
+    
+      
+################################################################################
+
+
 
     def deviceStartComm(self, device):
 
@@ -115,14 +182,14 @@ class Plugin(indigo.PluginBase):
             self.logger.error(u"{}: deviceStartComm: Unknown device version: {}".format(device.name, instanceVers))
         
         self.logger.debug("{}: deviceStartComm: Adding device ({}) to MyQ device list".format(device.name, device.id))
-        assert device.id not in self.myqDevices
-        self.myqDevices[device.id] = device
+        assert device.id not in self.myqOpeners
+        self.myqOpeners[device.id] = device
         self.needsUpdate = True
         
     def deviceStopComm(self, device):
         self.logger.debug("{}: deviceStopComm: Removing device ({}) from MyQ device list".format(device.name, device.id))
-        assert device.id in self.myqDevices
-        del self.myqDevices[device.id]
+        assert device.id in self.myqOpeners
+        del self.myqOpeners[device.id]
 
     def validateDeviceConfigUi(self, valuesDict, typeId, devId):
         valuesDict['myqID'] = valuesDict['address']
@@ -164,9 +231,7 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def menuDumpMyQ(self):
-        self.logger.debug(u"menuDumpMyQ")
-        self.logger.debug("menuDumpMyQ Account:\n{}".format(json.dumps(self.account_info, sort_keys=True, indent=4, separators=(',', ': '))))
-        self.logger.debug("menuDumpMyQ Devices:\n{}".format(json.dumps(self.device_info, sort_keys=True, indent=4, separators=(',', ': '))))
+        self.logger.info(u"MyQ Devices:\n{}".format(json.dumps(self.device_info, sort_keys=True, indent=4, separators=(',', ': '))))
         return True
         
 
@@ -198,11 +263,6 @@ class Plugin(indigo.PluginBase):
         if len(errorDict) > 0:
             return (False, valuesDict, errorDict)
 
-        if not self.myqLogin(username=valuesDict['myqLogin'], password=valuesDict['myqPassword']):
-            errorDict['myqLogin'] = u"Login to MyQ server failed, check login, password"
-            errorDict['myqPassword'] = u"Login to MyQ server failed, check login, password"
-            return (False, valuesDict, errorDict)
-
         return (True, valuesDict)
 
 
@@ -219,8 +279,6 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
             self.next_status_check = time.time() + self.statusFrequency
 
-            self.getDevices()
-
 
     def availableDeviceList(self, filter="", valuesDict=None, typeId="", targetId=0):
 
@@ -229,14 +287,14 @@ class Plugin(indigo.PluginBase):
             in_use.append(dev.address)
 
         retList =[]
-        for myqID, myqName in self.knownDevices.iteritems():
+        for myqID, myqName in self.knownOpeners.iteritems():
             if myqID not in in_use:
                 retList.append((myqID, myqName))
 
         if targetId:
             try:
                 dev = indigo.devices[targetId]
-                retList.insert(0, (dev.pluginProps["address"], self.knownDevices[dev.pluginProps["address"]]))
+                retList.insert(0, (dev.pluginProps["address"], self.knownOpeners[dev.pluginProps["address"]]))
             except:
                 pass
 
@@ -254,7 +312,7 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.deviceDeleted(self, dev)
         self.logger.debug(u"deviceDeleted: %s " % dev.name)
 
-        for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
+        for myqDeviceId, myqDevice in sorted(self.myqOpeners.iteritems()):
             try:
                 sensorDev = myqDevice.pluginProps["sensor"]
             except:
@@ -275,7 +333,7 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, origDev, newDev):
         indigo.PluginBase.deviceUpdated(self, origDev, newDev)
 
-        for myqDeviceId, myqDevice in sorted(self.myqDevices.iteritems()):
+        for myqDeviceId, myqDevice in sorted(self.myqOpeners.iteritems()):
             try:
                 sensorDev = int(myqDevice.pluginProps["sensor"])
             except:
@@ -308,153 +366,30 @@ class Plugin(indigo.PluginBase):
 
         if action.deviceAction == indigo.kDeviceAction.Unlock:
             self.logger.debug(u"actionControlDevice: Unlock {}".format(dev.name))
-            self.changeDevice(dev, COMMAND_OPEN)
+            cmd = {'cmd': 'open', 'id': dev.address} 
+            self.pymyq_write(json.dumps(cmd))
 
         elif action.deviceAction == indigo.kDeviceAction.Lock:
             self.logger.debug(u"actionControlDevice: Lock {}".format(dev.name))
-            self.changeDevice(dev, COMMAND_CLOSE)
+            cmd = {'cmd': 'close', 'id': dev.address} 
+            self.pymyq_write(json.dumps(cmd))
+
+        if action.deviceAction == indigo.kDeviceAction.TurnOn:
+            self.logger.debug(u"actionControlDevice: TurnOn {}".format(dev.name))
+            cmd = {'cmd': 'turnon', 'id': dev.address} 
+            self.pymyq_write(json.dumps(cmd))
+
+        elif action.deviceAction == indigo.kDeviceAction.TurnOff:
+            self.logger.debug(u"actionControlDevice: TurnOff {}".format(dev.name))
+            cmd = {'cmd': 'turnoff', 'id': dev.address} 
+            self.pymyq_write(json.dumps(cmd))
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
             self.logger.debug(u"actionControlDevice: Request Status")
-            self.getDevices()
+            self.requestUpdate()
 
         else:
             self.logger.error(u"actionControlDevice: Unsupported action requested: {} for {}".format(action, dev.name))
-
-
-    ########################################
-
-    def myqLogin(self, username=None, password=None):
-
-        if username == None or password == None:
-            self.logger.debug(u"myqLogin failure, Username or Password not set")
-            return False
-
-        url = "{}{}/{}".format(API_BASE, BASE_API_VERSION, 'Login')
-        headers = {
-                'Content-Type':     'application/json',
-                'MyQApplicationId': APP_ID,
-                'user-agent':       DEFAULT_USER_AGENT,
-                "ApiVersion":       str(DEVICES_API_VERSION),
-                "BrandId":          str(DEFAULT_BRAND_ID),
-                "Culture":          DEFAULT_CULTURE
-        }
-        payload = {
-                'Username': username, 
-                'Password': password
-        }
-
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            self.logger.debug(u"myqLogin response = {}".format(response.text))
-            
-        except requests.exceptions.RequestException as err:
-            self.logger.debug(u"myqLogin failure, request url: {}, RequestException: {}".format(url, err))
-            self.securityToken = ""
-            return False
-
-        if (response.status_code != requests.codes.ok):
-            self.logger.debug(u"myqLogin failure, status_code = {}".format(response.status_code))
-            self.securityToken = ""
-            return False        
-
-        try:
-            self.securityToken = response.json()['SecurityToken']
-        except:
-            self.logger.debug(u"myqLogin failure, json decode failure")
-            return False
-
-        self.logger.debug(u"myqLogin successful")
-        self.loginOK = True
-        
-        url = "{}{}/{}".format(API_BASE, BASE_API_VERSION, 'My')
-        headers = {
-                "Content-Type":     "application/json",
-                'MyQApplicationId': APP_ID,
-                'SecurityToken':    self.securityToken,
-                'user-agent':       DEFAULT_USER_AGENT,
-                "ApiVersion":       str(DEVICES_API_VERSION),
-                "BrandId":          str(DEFAULT_BRAND_ID),
-                "Culture":          DEFAULT_CULTURE
-        }
-        params = {"expand": "account"}        
-
-        try:
-            response = requests.get(url, params=params, headers=headers)
-        except requests.exceptions.RequestException as err:
-            self.logger.error(u"getDevices: RequestException: " + str(err))
-            return False
-        
-        self.account_info = response.json()
-        self.logger.threaddebug(u"myqLogin account_info = {}".format(self.account_info))
-
-        return True
-
-    ########################################
-
-    def getDevices(self):
-        
-        if not self.myqLogin(username = self.pluginPrefs.get('myqLogin', None), password = self.pluginPrefs.get('myqPassword', None)):
-            self.logger.debug(u"getDevices: MyQ Login Failure")
-            return
-
-        url = "{}{}/Accounts/{}/Devices".format(API_BASE, DEVICES_API_VERSION, self.account_id)
-        params = {
-        }
-        headers = {
-            'SecurityToken':    self.securityToken,
-            'Content-Type':     "application/json",
-            'MyQApplicationId': APP_ID,
-            'user-agent':       DEFAULT_USER_AGENT,
-            "ApiVersion":       str(DEVICES_API_VERSION),
-            "BrandId":          str(DEFAULT_BRAND_ID),
-            "Culture":          DEFAULT_CULTURE
-        }    
-        try:
-            response = requests.get(url, params=params, headers=headers)
-        except requests.exceptions.RequestException as err:
-            self.logger.error(u"getDevices: RequestException: {}".format(err))
-            return
-
-        if (response.status_code != requests.codes.ok):
-            self.logger.warning(u"getDevices failure, status_code = {}".format(response.status_code))
-            return      
-
-        self.device_info = response.json()
-        self.logger.threaddebug(u"getDevices device_info = {}".format(self.device_info))
-        self.logger.debug(u"getDevices: {} Devices".format(len(self.device_info['items'])))
-
-        for myqDevice in self.device_info['items']:
-
-            family = myqDevice['device_family']
-            name = myqDevice['name']
-            myqID = myqDevice['serial_number']
-            self.logger.debug(u"getDevices: device_family = {}, name = {}, serial_number = {}".format(family, name, myqID))
-            
-            if family == u'garagedoor':
-
-                if not myqID in self.knownDevices:
-                    self.knownDevices[myqID] = name
-                    
-
-                for dev in indigo.devices.iter(filter="self"):
-                    self.logger.debug(u'Checking Opener Device: {} ({}) against {}'.format(dev.name, dev.address, myqID))
-                    if dev.address == myqID:
-                        state = myqDevice["state"].get("door_state")
-                        dev.updateStateOnServer(key="doorStatus", value=state)
-                        if state == STATE_CLOSED:
-                           dev.updateStateOnServer(key="onOffState", value=True)  # closed is True (Locked)
-                        else:
-                            dev.updateStateOnServer(key="onOffState", value=False)   # anything other than closed is "Unlocked"
-                        self.triggerCheck(dev)
-
-                        break                    
-
-            elif family == u'gateway':            # Gateway
-                pass
-
-            else:
-                self.logger.debug(u'Unknown MyQ device: {}, family: {}'.format(name, family))
 
 
     ########################################
@@ -466,45 +401,18 @@ class Plugin(indigo.PluginBase):
             myqDevice = indigo.devices[pluginAction.deviceId]
             myqActionId = pluginAction.pluginTypeId
             if myqActionId == "openDoor":
-                self.changeDevice(myqDevice, COMMAND_OPEN)
+                cmd = {'cmd': 'open', 'id': myqDevice.address} 
+                self.pymyq_write(json.dumps(cmd))
             elif myqActionId == "closeDoor":
-                self.changeDevice(myqDevice, COMMAND_CLOSE)
+                cmd = {'cmd': 'close', 'id': myqDevice.address} 
+                self.pymyq_write(json.dumps(cmd))
             else:
                 self.logger.debug(u"changeDeviceAction, unknown myqActionId = {}".format(myqActionId))
+                return
+
+            # schedule an update to check on the movement
+            self.next_status_check = time.time() + float(self.pluginPrefs.get('statusDelay', "30"))
 
 
-    def changeDevice(self, device, action_command):
-
-        if not self.myqLogin(username = self.pluginPrefs.get('myqLogin', None), password = self.pluginPrefs.get('myqPassword', None)):
-            self.logger.debug(u"changeDevice: MyQ Login Failure")
-            return
-
-        self.logger.debug(u"{}: changeDevice: new state = {}".format(device.name, action_command))
-       
-        url = "{}{}/Accounts/{}/Devices/{}/actions".format(API_BASE, DEVICES_API_VERSION, self.account_id, device.address)
-        data = {
-            "action_type": action_command
-        }        
-        headers = {
-            'SecurityToken':    self.securityToken,
-            'Content-Type':     "application/json",
-            'MyQApplicationId': APP_ID,
-            'user-agent':       DEFAULT_USER_AGENT,
-            "ApiVersion":       str(DEVICES_API_VERSION),
-            "BrandId":          str(DEFAULT_BRAND_ID),
-            "Culture":          DEFAULT_CULTURE
-        }    
-        self.logger.threaddebug(u"{}: changeDevice: url = {}, data = = {}, headers = = {}".format(device.name, url, data, headers))
-        try:
-            response = requests.put(url, json=data, headers=headers)
-        except requests.exceptions.RequestException as err:
-            self.logger.error(u"{}: changeDevice failure, RequestException: {}".format(device.name, err))
-            return
-
-        if (response.status_code != requests.codes.no_content):
-            self.logger.error(u"{}: changeDevice failure, code: {}, response: {}".format(device.name, response.status_code, response.text))
-            return
-
-        # schedule an update to check on the movement
-        self.next_status_check = time.time() + float(self.pluginPrefs.get('statusDelay', "30"))
+        
 

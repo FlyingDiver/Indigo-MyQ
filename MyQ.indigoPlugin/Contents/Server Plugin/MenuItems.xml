@@ -2,8 +2,8 @@
 <MenuItems>
     <SupportURL>http://forums.indigodomo.com/viewforum.php?f=214</SupportURL>
     <MenuItem id="getDevices">
-        <Name>Update Device Status</Name>
-        <CallbackMethod>getDevices</CallbackMethod>
+        <Name>Update Devices</Name>
+        <CallbackMethod>requestUpdate</CallbackMethod>
     </MenuItem>
     <MenuItem id="menu3">
         <Name>Write MyQ Data to Log</Name>
