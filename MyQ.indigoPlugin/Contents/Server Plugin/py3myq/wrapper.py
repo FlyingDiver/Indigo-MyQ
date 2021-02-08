@@ -50,53 +50,10 @@ async def main(args) -> None:
                 for account in api.accounts:
                     msg_write(json.dumps({'msg': 'account', 'id': account, 'name': api.accounts[account]}))
 
-            elif cmd == 'covers':
-                if len(api.covers) != 0:
-                    for device_id in api.covers:
-                        device = api.devices[device_id]
-                        data = {
-                            'msg': 'device', 
-                            'id': device_id, 
-                            'name': device.name, 
-                            'state': device.state, 
-                            'online': device.online, 
-                            'device_family': device.device_family, 
-                            'device_platform': device.device_platform,
-                            'device_type': device.device_type,
-                        }
-                        msg_write(json.dumps(data))
-
-            elif cmd == 'lamps':
-                if len(api.lamps) != 0:
-                    for device_id in api.lamps:
-                        device = api.devices[device_id]
-                        data = {
-                            'msg': 'device', 
-                            'id': device_id, 
-                            'name': device.name, 
-                            'state': device.state, 
-                            'online': device.online, 
-                            'device_family': device.device_family, 
-                            'device_platform': device.device_platform,
-                            'device_type': device.device_type,
-                        }
-                        msg_write(json.dumps(data))
-
-            elif cmd == 'gateways':
-                if len(api.gateways) != 0:
-                    for device_id in api.gateways:
-                        device = api.devices[device_id]
-                        data = {
-                            'msg': 'device', 
-                            'id': device_id, 
-                            'name': device.name, 
-                            'state': device.state, 
-                            'online': device.online, 
-                            'device_family': device.device_family, 
-                            'device_platform': device.device_platform,
-                            'device_type': device.device_type,
-                        }
-                        msg_write(json.dumps(data))
+            elif cmd == 'devices':
+                for device_id in api.devices:
+                    device = api.devices[device_id]
+                    msg_write(json.dumps({'msg': 'device', 'id': device_id, 'props':device.device_json}))
                         
             elif cmd == 'open':
                 device = api.devices[request['id']]
@@ -135,6 +92,8 @@ async def main(args) -> None:
                             msg_write(json.dumps({'msg': 'status', 'status': f"Garage door {device.name} has been closed."}))
                         else:
                             msg_write(json.dumps({'msg': 'status', 'status': f"Failed to close garage door {device.name}."}))
+                else:
+                    msg_write(json.dumps({'msg': 'status', 'status': f"Closing of garage door {device.name} is not allowed."}))
 
 
             elif cmd == 'turnon':

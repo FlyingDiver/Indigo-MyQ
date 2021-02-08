@@ -49,8 +49,11 @@ class Plugin(indigo.PluginBase):
 
         self.myqOpeners = {}
         self.myqLamps = {}
+        
         self.knownOpeners = {}
         self.knownLamps = {}
+        
+        self.device_info = {}
         
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
         self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
@@ -90,14 +93,14 @@ class Plugin(indigo.PluginBase):
 ################################################################################
 
     def pymyq_write(self, msg):
-        self.logger.debug(u"Send pymyq message: {}".format(msg))
+        self.logger.threaddebug(u"Send pymyq message: {}".format(msg))
         self.pymyq.stdin.write(u"{}\n".format(msg))
 
 
     def pymyq_read(self):
         while True:
             msg = self.pymyq.stdout.readline()
-            self.logger.debug(u"Received pymyq message: {}".format(msg.rstrip()))
+            self.logger.threaddebug(u"Received pymyq message: {}".format(msg.rstrip()))
             
             data = json.loads(msg)
             if data['msg'] == 'status':
@@ -109,17 +112,18 @@ class Plugin(indigo.PluginBase):
             elif data['msg'] == 'account':
                 self.logger.debug(u"pymyq_read: account ID = {}, name = {}".format(data['id'], data['name']))
             
-            elif data['msg'] == 'gateway':
-                self.logger.debug(u"pymyq_read: gateway ID = {}, name = {}".format(data['id'], data['name']))
-            
             elif data['msg'] == 'device':            
-                name = data['name']
-                myqID = data['id']
-                family = data['device_family']
-                state = data['state']
-                self.logger.debug(u"pymyq_read: device ID = {}, name = {}, family = {}, state = {}".format(myqID, name, family, state))
+                name = data['props']['name']
+                myqID = data['props']['serial_number']
+                family = data['props']['device_family']
+                self.logger.debug(u"pymyq_read: device ID = {}, name = {}, family = {}".format(myqID, name, family))
             
+                self.device_info[myqID] = data['props']
+                
                 if family == u'garagedoor':
+
+                    state = data['props']['state']['door_state']
+                    self.logger.debug(u"pymyq_read: door state = {}".format(state))
 
                     if not myqID in self.knownOpeners:
                         self.knownOpeners[myqID] = name
@@ -136,17 +140,18 @@ class Plugin(indigo.PluginBase):
                             break                    
 
                 elif family == u'lamp':
-                     if not myqID in self.knownLamps:
+                    state = data['props']['state']['lamp_state']
+                    self.logger.debug(u"pymyq_read: lamp state = {}".format(state))
+
+                    if not myqID in self.knownLamps:
                         self.knownLamps[myqID] = name
                     
                
  
     def requestUpdate(self):
-        cmd = {'cmd': 'covers'} 
+        cmd = {'cmd': 'accounts'} 
         self.pymyq_write(json.dumps(cmd))
-        cmd = {'cmd': 'lamps'} 
-        self.pymyq_write(json.dumps(cmd))
-        cmd = {'cmd': 'gateways'}
+        cmd = {'cmd': 'devices'} 
         self.pymyq_write(json.dumps(cmd))
     
       
@@ -226,9 +231,7 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def menuDumpMyQ(self):
-        self.logger.debug(u"menuDumpMyQ")
-        self.logger.debug("menuDumpMyQ Openers:\n{}".format(json.dumps(self.myqOpeners, sort_keys=True, indent=4, separators=(',', ': '))))
-        self.logger.debug("menuDumpMyQ Lamps:\n{}".format(json.dumps(self.myqLamps, sort_keys=True, indent=4, separators=(',', ': '))))
+        self.logger.info(u"MyQ Devices:\n{}".format(json.dumps(self.device_info, sort_keys=True, indent=4, separators=(',', ': '))))
         return True
         
 
