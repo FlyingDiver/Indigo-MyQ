@@ -122,7 +122,7 @@ class API:  # pylint: disable=too-many-instance-attributes
         json: dict = None,
         allow_redirects: bool = True,
         login_request: bool = False,
-    ) -> (ClientResponse, Union[dict, str, None]):
+    ) -> Tuple[ClientResponse, Union[dict, str, None]]:
         """Make a request."""
 
         # Determine the method to call based on what is to be returned.
@@ -269,7 +269,7 @@ class API:  # pylint: disable=too-many-instance-attributes
                 _LOGGER.debug(message)
                 raise RequestError(message)
 
-    async def _oauth_authenticate(self) -> (str, int):
+    async def _oauth_authenticate(self) -> Tuple[str, int]:
 
         async with ClientSession() as session:
             # retrieve authentication page
@@ -615,7 +615,7 @@ class API:  # pylint: disable=too-many-instance-attributes
 
                 if self.accounts is None:
                     _LOGGER.debug(f"No accounts found")
-                    self.devices = []
+                    self.devices = {}
                     accounts = {}
                 else:
                     accounts = self.accounts
