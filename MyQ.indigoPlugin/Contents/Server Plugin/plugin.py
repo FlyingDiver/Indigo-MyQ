@@ -93,8 +93,9 @@ class Plugin(indigo.PluginBase):
 ################################################################################
 
     def pymyq_write(self, msg):
-        self.logger.threaddebug(u"Send pymyq message: {}".format(msg))
-        self.pymyq.stdin.write(u"{}\n".format(msg))
+        jsonMsg = json.dumps(msg)
+        self.logger.threaddebug(u"Send pymyq message: {}".format(jsonMsg))
+        self.pymyq.stdin.write(u"{}\n".format(jsonMsg))
 
 
     def pymyq_read(self):
@@ -150,9 +151,9 @@ class Plugin(indigo.PluginBase):
  
     def requestUpdate(self):
         cmd = {'cmd': 'accounts'} 
-        self.pymyq_write(json.dumps(cmd))
+        self.pymyq_write(cmd)
         cmd = {'cmd': 'devices'} 
-        self.pymyq_write(json.dumps(cmd))
+        self.pymyq_write(cmd)
     
       
 ################################################################################
@@ -367,22 +368,22 @@ class Plugin(indigo.PluginBase):
         if action.deviceAction == indigo.kDeviceAction.Unlock:
             self.logger.debug(u"actionControlDevice: Unlock {}".format(dev.name))
             cmd = {'cmd': 'open', 'id': dev.address} 
-            self.pymyq_write(json.dumps(cmd))
+            self.pymyq_write(cmd)
 
         elif action.deviceAction == indigo.kDeviceAction.Lock:
             self.logger.debug(u"actionControlDevice: Lock {}".format(dev.name))
             cmd = {'cmd': 'close', 'id': dev.address} 
-            self.pymyq_write(json.dumps(cmd))
+            self.pymyq_write(cmd)
 
         if action.deviceAction == indigo.kDeviceAction.TurnOn:
             self.logger.debug(u"actionControlDevice: TurnOn {}".format(dev.name))
             cmd = {'cmd': 'turnon', 'id': dev.address} 
-            self.pymyq_write(json.dumps(cmd))
+            self.pymyq_write(cmd)
 
         elif action.deviceAction == indigo.kDeviceAction.TurnOff:
             self.logger.debug(u"actionControlDevice: TurnOff {}".format(dev.name))
             cmd = {'cmd': 'turnoff', 'id': dev.address} 
-            self.pymyq_write(json.dumps(cmd))
+            self.pymyq_write(cmd)
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
             self.logger.debug(u"actionControlDevice: Request Status")
@@ -402,10 +403,10 @@ class Plugin(indigo.PluginBase):
             myqActionId = pluginAction.pluginTypeId
             if myqActionId == "openDoor":
                 cmd = {'cmd': 'open', 'id': myqDevice.address} 
-                self.pymyq_write(json.dumps(cmd))
+                self.pymyq_write(cmd)
             elif myqActionId == "closeDoor":
                 cmd = {'cmd': 'close', 'id': myqDevice.address} 
-                self.pymyq_write(json.dumps(cmd))
+                self.pymyq_write(cmd)
             else:
                 self.logger.debug(u"changeDeviceAction, unknown myqActionId = {}".format(myqActionId))
                 return
