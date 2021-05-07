@@ -346,7 +346,7 @@ class Plugin(indigo.PluginBase):
                         sensor_state = newDev.onState
                     elif isinstance(newDev, indigo.MultiIODevice):
                         old_sensor_state =  not origDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
-                        sensor_state = not newDev.states["binaryInput1"] # I/O devices are opposite from sensors in terms of the state binary
+                        sensor_state = not newDev.states["binaryInput1"]
                     else:    
                         self.logger.error(u"deviceUpdated: unknown device type for {}".format(origDev.name))
                         
@@ -375,7 +375,7 @@ class Plugin(indigo.PluginBase):
             cmd = {'cmd': 'close', 'id': dev.address} 
             self.pymyq_write(cmd)
 
-        if action.deviceAction == indigo.kDeviceAction.TurnOn:
+        elif action.deviceAction == indigo.kDeviceAction.TurnOn:
             self.logger.debug(u"actionControlDevice: TurnOn {}".format(dev.name))
             cmd = {'cmd': 'turnon', 'id': dev.address} 
             self.pymyq_write(cmd)
