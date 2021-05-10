@@ -103,7 +103,12 @@ class Plugin(indigo.PluginBase):
             msg = self.pymyq.stdout.readline()
             self.logger.threaddebug(u"Received pymyq message: {}".format(msg.rstrip()))
             
-            data = json.loads(msg)
+            try:
+                data = json.loads(msg)
+            except:
+                self.logger.warning(u"Unable to convert JSON message from subprocess: {}".format(msg)
+                return
+            
             if data['msg'] == 'status':
                 self.logger.info(data['status'])  
                 
