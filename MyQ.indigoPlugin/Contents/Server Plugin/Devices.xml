@@ -7,7 +7,7 @@
             <Field type="textfield" id="myqID" hidden="true" />  
             <Field id="address" type="menu">
                 <Label>MyQ Opener Device:</Label>
-                <List class="self" filter="" method="availableDeviceList"/>
+                <List class="self" filter="garagedoor" method="availableDeviceList"/>
             </Field>            
 			<Field id="sensor" type="menu" >
 				<Label>Linked Sensor Device:</Label>
@@ -36,13 +36,13 @@
         </States>
         <UiDisplayStateId>doorStatus</UiDisplayStateId>
     </Device>
-    <Device type="relay" id="myLight">
+    <Device type="relay" id="myqLight">
         <Name>MyQ Light</Name>
         <ConfigUI>
             <Field type="textfield" id="myqID" hidden="true" />  
             <Field id="address" type="menu">
                 <Label>MyQ Light Device:</Label>
-                <List class="self" filter="" method="availableDeviceList"/>
+                <List class="self" filter="lamp" method="availableDeviceList"/>
             </Field>            
         </ConfigUI>
     </Device>

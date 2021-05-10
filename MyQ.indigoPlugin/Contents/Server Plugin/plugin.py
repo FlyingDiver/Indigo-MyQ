@@ -106,7 +106,7 @@ class Plugin(indigo.PluginBase):
             try:
                 data = json.loads(msg)
             except:
-                self.logger.warning(u"Unable to convert JSON message from subprocess: {}".format(msg)
+                self.logger.warning(u"Unable to convert JSON message from subprocess: {}".format(msg))
                 return
             
             if data['msg'] == 'status':
@@ -167,35 +167,57 @@ class Plugin(indigo.PluginBase):
 
     def deviceStartComm(self, device):
 
-        myqID = device.pluginProps.get("myqID", None)
-        if myqID != device.address:
-            newProps = device.pluginProps
-            newProps["address"] = myqID
-            device.replacePluginPropsOnServer(newProps)
-            self.logger.debug(u"{}: deviceStartComm: updated address to myqID {}".format(device.name, myqID))
+        self.logger.info(u"{}: Starting {} Device {}".format(device.name, device.deviceTypeId, device.id))
 
-        instanceVers = int(device.pluginProps.get('devVersCount', 0))
-        if instanceVers >= kCurDevVersCount:
-            self.logger.debug(u"{}: deviceStartComm: Device version is up to date ({})".format(device.name, instanceVers))
-        elif instanceVers < kCurDevVersCount:
-            newProps = device.pluginProps
-            newProps['IsLockSubType'] = True
-            newProps["devVersCount"] = kCurDevVersCount
-            device.replacePluginPropsOnServer(newProps)
-            device.stateListOrDisplayStateIdChanged()
-            self.logger.debug(u"{}: deviceStartComm: Updated to device version {}, props = {}".format(device.name, kCurDevVersCount, newProps))
-        else:
-            self.logger.error(u"{}: deviceStartComm: Unknown device version: {}".format(device.name, instanceVers))
+        if device.deviceTypeId == 'myqOpener': 
+
+            myqID = device.pluginProps.get("myqID", None)
+            if myqID != device.address:
+                newProps = device.pluginProps
+                newProps["address"] = myqID
+                device.replacePluginPropsOnServer(newProps)
+                self.logger.debug(u"{}: deviceStartComm: updated address to myqID {}".format(device.name, myqID))
+
+            instanceVers = int(device.pluginProps.get('devVersCount', 0))
+            if instanceVers >= kCurDevVersCount:
+                self.logger.debug(u"{}: deviceStartComm: Device version is up to date ({})".format(device.name, instanceVers))
+            elif instanceVers < kCurDevVersCount:
+                newProps = device.pluginProps
+                newProps['IsLockSubType'] = True
+                newProps["devVersCount"] = kCurDevVersCount
+                device.replacePluginPropsOnServer(newProps)
+                device.stateListOrDisplayStateIdChanged()
+                self.logger.debug(u"{}: deviceStartComm: Updated to device version {}, props = {}".format(device.name, kCurDevVersCount, newProps))
+            else:
+                self.logger.error(u"{}: deviceStartComm: Unknown device version: {}".format(device.name, instanceVers))
         
-        self.logger.debug("{}: deviceStartComm: Adding device ({}) to MyQ device list".format(device.name, device.id))
-        assert device.id not in self.myqOpeners
-        self.myqOpeners[device.id] = device
-        self.needsUpdate = True
+            self.logger.debug("{}: deviceStartComm: Adding device ({}) to self.myqOpeners".format(device.name, device.id))
+            assert device.id not in self.myqOpeners
+            self.myqOpeners[device.id] = device
+            self.needsUpdate = True
+
+        elif dev.deviceTypeId == 'myqLight':
+        
+            self.logger.debug("{}: deviceStartComm: Adding device ({}) to self.myqLamps".format(device.name, device.id))
+            assert device.id not in self.myqLamps
+            self.myqLamps[device.id] = device
+            self.needsUpdate = True
+        
         
     def deviceStopComm(self, device):
-        self.logger.debug("{}: deviceStopComm: Removing device ({}) from MyQ device list".format(device.name, device.id))
-        assert device.id in self.myqOpeners
-        del self.myqOpeners[device.id]
+
+        self.logger.info(u"{}: Stopping {} Device {}".format(device.name, device.deviceTypeId, device.id))
+
+        if device.deviceTypeId == 'myqOpener': 
+            self.logger.debug("{}: deviceStopComm: Removing device ({}) from self.myqOpeners".format(device.name, device.id))
+            assert device.id in self.myqOpeners
+            del self.myqOpeners[device.id]
+
+        elif dev.deviceTypeId == 'myqLight':
+            self.logger.debug("{}: deviceStopComm: Removing device ({}) from self.myqLamps".format(device.name, device.id))
+            assert device.id in self.myqLamps
+            del self.myqLamps[device.id]
+
 
     def validateDeviceConfigUi(self, valuesDict, typeId, devId):
         valuesDict['myqID'] = valuesDict['address']
@@ -289,22 +311,39 @@ class Plugin(indigo.PluginBase):
     def availableDeviceList(self, filter="", valuesDict=None, typeId="", targetId=0):
 
         in_use =[]
-        for dev in indigo.devices.iter(filter="self.myqOpener"):
-            in_use.append(dev.address)
-
         retList =[]
-        for myqID, myqName in self.knownOpeners.iteritems():
-            if myqID not in in_use:
-                retList.append((myqID, myqName))
 
-        if targetId:
-            try:
-                dev = indigo.devices[targetId]
-                retList.insert(0, (dev.pluginProps["address"], self.knownOpeners[dev.pluginProps["address"]]))
-            except:
-                pass
+        if filter == "garagedoor":
+            for dev in indigo.devices.iter(filter="self.myqOpener"):
+                in_use.append(dev.address)
 
-        self.logger.debug("availableDeviceList: retList = {}".format(retList))
+            for myqID, myqName in self.knownOpeners.iteritems():
+                if myqID not in in_use:
+                    retList.append((myqID, myqName))
+
+            if targetId:
+                try:
+                    dev = indigo.devices[targetId]
+                    retList.insert(0, (dev.pluginProps["address"], self.knownOpeners[dev.pluginProps["address"]]))
+                except:
+                    pass
+
+        elif filter == "lamp":
+            for dev in indigo.devices.iter(filter="self.myqLight"):
+                in_use.append(dev.address)
+            
+            for myqID, myqName in self.knownLamps.iteritems():
+                if myqID not in in_use:
+                    retList.append((myqID, myqName))
+
+            if targetId:
+                try:
+                    dev = indigo.devices[targetId]
+                    retList.insert(0, (dev.pluginProps["address"], self.knownLamps[dev.pluginProps["address"]]))
+                except:
+                    pass        
+        
+        self.logger.debug("availableDeviceList for {}: retList = {}".format(filter, retList))
         return retList
 
 
