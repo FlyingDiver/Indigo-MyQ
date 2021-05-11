@@ -13,9 +13,6 @@
     <Field id="statusNote" type="label" fontSize="small" fontColor="darkgray">
         <Label>Minimum update interval is 5 minutes.  Maximum is 1440 (24 hours).  Default is 10.</Label>
     </Field>
-    <Field id="statusDelay" type="textfield" defaultValue="30">
-        <Label>Delay after MyQ command before status update (seconds):</Label>
-    </Field>
     <Field id="sep2" type="separator"/>
     <Field id="logLevel" type="menu" defaultValue="20">
         <Label>Event Logging Level:</Label>

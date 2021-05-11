@@ -63,7 +63,7 @@ class Plugin(indigo.PluginBase):
         indigo.devices.subscribeToChanges()
 
         # Start up the pymyq wrapper task            
-        self.pymyq = Popen(['/usr/bin/python3', './py3myq/wrapper.py', self.pluginPrefs['myqLogin'], self.pluginPrefs['myqPassword']], 
+        self.pymyq = Popen(['/usr/bin/python3', './wrapper.py', self.pluginPrefs['myqLogin'], self.pluginPrefs['myqPassword']], 
                                 stdin=PIPE, stdout=PIPE, close_fds=True, bufsize=1, universal_newlines=True)
                                 
         # start up the reader thread        
@@ -106,7 +106,7 @@ class Plugin(indigo.PluginBase):
             try:
                 data = json.loads(msg)
             except:
-                self.logger.warning(u"Unable to convert JSON message from subprocess: {}".format(msg))
+                self.logger.warning(u"Unable to convert JSON message from subprocess: '{}'".format(msg))
                 return
             
             if data['msg'] == 'status':
@@ -454,10 +454,6 @@ class Plugin(indigo.PluginBase):
             else:
                 self.logger.debug(u"changeDeviceAction, unknown myqActionId = {}".format(myqActionId))
                 return
-
-            # schedule an update to check on the movement
-            self.next_status_check = time.time() + float(self.pluginPrefs.get('statusDelay', "30"))
-
 
         
 
