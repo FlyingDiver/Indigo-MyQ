@@ -95,19 +95,30 @@ class Plugin(indigo.PluginBase):
     def pymyq_write(self, msg):
         jsonMsg = json.dumps(msg)
         self.logger.threaddebug(u"Send pymyq message: {}".format(jsonMsg))
-        self.pymyq.stdin.write(u"{}\n".format(jsonMsg))
+        try:
+            self.pymyq.stdin.write(u"{}\n".format(jsonMsg))
+        except IOError as err:
+            self.logger.warning(u"IOError writing to subprocess: '{}'".format(err))
+        except Exception as err:
+            self.logger.warning(u"Unknown writing to subprocess: '{}'".format(err))
+        
 
 
     def pymyq_read(self):
         while True:
-            msg = self.pymyq.stdout.readline()
+            try:
+                msg = self.pymyq.stdout.readline()
+            except IOError as err:
+                self.logger.warning(u"IOError reading from subprocess: '{}'".format(err))
+                continue
+                
             self.logger.threaddebug(u"Received pymyq message: {}".format(msg.rstrip()))
             
             try:
                 data = json.loads(msg)
             except:
                 self.logger.warning(u"Unable to convert JSON message from subprocess: '{}'".format(msg))
-                return
+                continue
             
             if data['msg'] == 'status':
                 self.logger.info(data['status'])  
@@ -196,7 +207,7 @@ class Plugin(indigo.PluginBase):
             self.myqOpeners[device.id] = device
             self.needsUpdate = True
 
-        elif dev.deviceTypeId == 'myqLight':
+        elif device.deviceTypeId == 'myqLight':
         
             self.logger.debug("{}: deviceStartComm: Adding device ({}) to self.myqLamps".format(device.name, device.id))
             assert device.id not in self.myqLamps
@@ -213,7 +224,7 @@ class Plugin(indigo.PluginBase):
             assert device.id in self.myqOpeners
             del self.myqOpeners[device.id]
 
-        elif dev.deviceTypeId == 'myqLight':
+        elif device.deviceTypeId == 'myqLight':
             self.logger.debug("{}: deviceStopComm: Removing device ({}) from self.myqLamps".format(device.name, device.id))
             assert device.id in self.myqLamps
             del self.myqLamps[device.id]
