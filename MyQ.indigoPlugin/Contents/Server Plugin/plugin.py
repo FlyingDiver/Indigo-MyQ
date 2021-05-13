@@ -145,7 +145,7 @@ class Plugin(indigo.PluginBase):
                     if not myqID in self.knownOpeners:
                         self.knownOpeners[myqID] = name
                     
-                    for dev in indigo.devices.iter(filter="self"):
+                    for dev in indigo.devices.iter(filter="self.myqOpener"):
                         self.logger.debug(u'Checking Opener Device: {} ({}) against {}'.format(dev.name, dev.address, myqID))
                         if dev.address == myqID:
                             dev.updateStateOnServer(key="doorStatus", value=state)
@@ -163,6 +163,14 @@ class Plugin(indigo.PluginBase):
                     if not myqID in self.knownLamps:
                         self.knownLamps[myqID] = name
                     
+                    for dev in indigo.devices.iter(filter="self.myqLight"):
+                        self.logger.debug(u'Checking Lamp Device: {} ({}) against {}'.format(dev.name, dev.address, myqID))
+                        if dev.address == myqID:
+                            if state == "on":
+                               dev.updateStateOnServer(key="onOffState", value=True)
+                            else:
+                                dev.updateStateOnServer(key="onOffState", value=False) 
+                            break                    
                
  
     def requestUpdate(self):
