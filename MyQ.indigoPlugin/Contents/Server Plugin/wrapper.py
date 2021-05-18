@@ -111,20 +111,36 @@ async def main(args) -> None:
             elif cmd == 'turnon':
                 device = api.devices[request['id']]
                 msg_write(json.dumps({'msg': 'status', 'status': f"Turning lamp {device.name} on"}))
+                
                 try:
-                    await device.turnon()
-                except RequestError as err:
+                    wait_task = await device.turnon(wait_for_state=False)
+                except MyQError as err:
                     msg_write(json.dumps({'msg': 'error', 'error': f"Error when trying to turn on {device.name}: {str(err)}"}))
+                    device = api.devices[device.device_id]
+                    msg_write(json.dumps({'msg': 'device', 'id': device.device_id, 'props':device.device_json}))
+                         
+                msg_write(json.dumps({'msg': 'status', 'status': f"Device {device.name} is {device.state}"}))
+
+                if not await wait_task:
+                    msg_write(json.dumps({'msg': 'status', 'status': f"Failed to turn on lamp {device.name}."}))
                 device = api.devices[device.device_id]
                 msg_write(json.dumps({'msg': 'device', 'id': device.device_id, 'props':device.device_json}))
+
                      
             elif cmd == 'turnoff':
                 device = api.devices[request['id']]
                 msg_write(json.dumps({'msg': 'status', 'status': f"Turning lamp {device.name} off"}))
                 try:
-                    await device.turnoff()
+                    wait_task = await device.turnoff(wait_for_state=False)
                 except RequestError as err:
                     msg_write(json.dumps({'msg': 'error', 'error': f"Error when trying to turn off {device.name}: {str(err)}"}))
+                    device = api.devices[device.device_id]
+                    msg_write(json.dumps({'msg': 'device', 'id': device.device_id, 'props':device.device_json}))
+
+                msg_write(json.dumps({'msg': 'status', 'status': f"Device {device.name} is {device.state}"}))
+
+                if not await wait_task:
+                    msg_write(json.dumps({'msg': 'status', 'status': f"Failed to turn off lamp {device.name}."}))
                 device = api.devices[device.device_id]
                 msg_write(json.dumps({'msg': 'device', 'id': device.device_id, 'props':device.device_json}))
 
