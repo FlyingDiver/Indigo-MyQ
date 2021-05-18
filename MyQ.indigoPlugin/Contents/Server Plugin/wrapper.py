@@ -60,11 +60,11 @@ async def main(args) -> None:
                 
                 if not device.open_allowed:
                     msg_write(json.dumps({'msg': 'status', 'status': f"Opening of garage door {device.name} is not allowed."}))
-                    return
+                    continue
                     
                 if device.state == STATE_OPEN:
                     msg_write(json.dumps({'msg': 'status', 'status': f"Garage door {device.name} is already open"}))
-                    return
+                    continue
                     
                 try:
                     wait_task = await device.open(wait_for_state=False)
@@ -72,7 +72,7 @@ async def main(args) -> None:
                     msg_write(json.dumps({'msg': 'error', 'error': f"Error when trying to open {device.name}: {str(err)}"}))
                     device = api.devices[device.device_id]
                     msg_write(json.dumps({'msg': 'device', 'id': device.device_id, 'props':device.device_json}))
-                    return
+                    continue
                          
                 msg_write(json.dumps({'msg': 'status', 'status': f"Device {device.name} is {device.state}"}))
                
@@ -86,11 +86,11 @@ async def main(args) -> None:
 
                 if not device.close_allowed:
                     msg_write(json.dumps({'msg': 'status', 'status': f"Closing of garage door {device.name} is not allowed."}))
-                    return
+                    continue
                     
                 if device.state == STATE_CLOSED:
                     msg_write(json.dumps({'msg': 'status', 'status': f"Garage door {device.name} is already closed"}))
-                    return
+                    continue
                     
                 try:
                     wait_task = await device.close(wait_for_state=False)
@@ -98,7 +98,7 @@ async def main(args) -> None:
                     msg_write(json.dumps({'msg': 'error', 'error': f"Error when trying to close {device.name}: {str(err)}"}))
                     device = api.devices[device.device_id]
                     msg_write(json.dumps({'msg': 'device', 'id': device.device_id, 'props':device.device_json}))
-                    return
+                    continue
                     
                 msg_write(json.dumps({'msg': 'status', 'status': f"Device {device.name} is {device.state}"}))
 
