@@ -107,13 +107,17 @@ class Plugin(indigo.PluginBase):
     def pymyq_read(self):
         while True:
             try:
-                msg = self.pymyq.stdout.readline()
+                msg = self.pymyq.stdout.readline().rstrip()
             except IOError as err:
                 self.logger.warning(u"IOError reading from subprocess: '{}'".format(err))
                 continue
                 
-            self.logger.threaddebug(u"Received pymyq message: {}".format(msg.rstrip()))
-            
+            self.logger.threaddebug(u"Received pymyq message: {}".format(msg))
+            if not len(msg):
+                self.logger.warning(u"Zero length message from subprocess")
+                self.sleep(1)
+                continue
+                
             try:
                 data = json.loads(msg)
             except:
