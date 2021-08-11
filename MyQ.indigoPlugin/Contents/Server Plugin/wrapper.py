@@ -31,7 +31,7 @@ async def process(api, request):
 
     elif cmd == 'accounts':
         for account in api.accounts:
-            msg_write(json.dumps({'msg': 'account', 'id': account, 'name': api.accounts[account]}))
+            msg_write(json.dumps({ 'msg': 'account', 'id': api.accounts[account].id, 'name': api.accounts[account].name }))
         return True
 
     elif cmd == 'devices':

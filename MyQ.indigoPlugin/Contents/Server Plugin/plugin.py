@@ -57,7 +57,7 @@ class Plugin(indigo.PluginBase):
         
         self.statusFrequency = float(self.pluginPrefs.get('statusFrequency', "10")) * 60.0
         self.logger.debug(u"statusFrequency = {}".format(self.statusFrequency))
-        self.next_status_check = time.time() + 10.0     # wait for subprocess to start up
+        self.next_status_check = time.time() + 15.0     # wait for subprocess to start up
 
         # Watch for changes to sensors associated with an opener
         indigo.devices.subscribeToChanges()
@@ -83,7 +83,7 @@ class Plugin(indigo.PluginBase):
                 if self.needsUpdate or (time.time() > self.next_status_check):
                     self.next_status_check = time.time() + self.statusFrequency
                     self.needsUpdate = False
-                    self.requestUpdate()     # only do this device type for now
+                    self.requestUpdate()  
                                     
                 self.sleep(1.0)
 
@@ -178,10 +178,9 @@ class Plugin(indigo.PluginBase):
                
  
     def requestUpdate(self):
-        cmd = {'cmd': 'accounts'} 
-        self.pymyq_write(cmd)
-        cmd = {'cmd': 'devices'} 
-        self.pymyq_write(cmd)
+        self.pymyq_write({'cmd': 'accounts'})
+        self.sleep(2)
+        self.pymyq_write({'cmd': 'devices'})
     
       
 ################################################################################
