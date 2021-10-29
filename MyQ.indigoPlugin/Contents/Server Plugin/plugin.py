@@ -178,6 +178,8 @@ class Plugin(indigo.PluginBase):
                
  
     def requestUpdate(self):
+        self.pymyq_write({'cmd': 'update'})
+        self.sleep(2)
         self.pymyq_write({'cmd': 'accounts'})
         self.sleep(2)
         self.pymyq_write({'cmd': 'devices'})

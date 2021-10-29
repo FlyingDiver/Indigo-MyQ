@@ -9,6 +9,9 @@ from aiohttp import ClientSession
 from pymyq import login
 from pymyq.errors import MyQError, RequestError
 
+import logging
+import sys
+
 
 STATE_CLOSED = "closed"
 STATE_CLOSING = "closing"
@@ -27,6 +30,10 @@ async def process(api, request):
 
     cmd = request['cmd']
     if cmd == 'stop':
+        return True
+
+    elif cmd == 'update':
+        await api.update_device_info()
         return True
 
     elif cmd == 'accounts':
@@ -136,6 +143,16 @@ async def process(api, request):
         return True
 
 async def main(args) -> None:
+
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
 
     async with ClientSession() as websession:
         try:
