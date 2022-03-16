@@ -141,7 +141,7 @@ class Plugin(indigo.PluginBase):
             self.logger.debug(f"Skipping triggers, no linked sensor for MyQ device {device.name}")
             return
 
-        for triggerId, trigger in sorted(self.triggers.iteritems()):
+        for triggerId, trigger in sorted(self.triggers.items()):
             self.logger.debug(f"Checking Trigger {trigger.name} ({trigger.id}), Type: {trigger.pluginTypeId}")
             if isinstance(sensor, indigo.SensorDevice):
                 sensor_state = sensor.onState
@@ -156,6 +156,10 @@ class Plugin(indigo.PluginBase):
     ########################################
     # Menu Methods
     ########################################
+
+    def requestUpdate(self):
+        self.needsUpdate = True
+        return True
 
     def menuDumpMyQ(self):
         self.logger.info(
@@ -214,7 +218,7 @@ class Plugin(indigo.PluginBase):
             for dev in indigo.devices.iter(filter="self.myqOpener"):
                 in_use.append(dev.address)
 
-            for myqID, myqName in self.knownOpeners.iteritems():
+            for myqID, myqName in self.knownOpeners.items():
                 if myqID not in in_use:
                     retList.append((myqID, myqName))
 
@@ -229,7 +233,7 @@ class Plugin(indigo.PluginBase):
             for dev in indigo.devices.iter(filter="self.myqLight"):
                 in_use.append(dev.address)
 
-            for myqID, myqName in self.knownLamps.iteritems():
+            for myqID, myqName in self.knownLamps.items():
                 if myqID not in in_use:
                     retList.append((myqID, myqName))
 
@@ -253,7 +257,7 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.deviceDeleted(self, dev)
         self.logger.debug(f"deviceDeleted: {dev.name} ")
 
-        for myqDeviceId, myqDevice in sorted(self.myqOpeners.iteritems()):
+        for myqDeviceId, myqDevice in sorted(self.myqOpeners.items()):
             try:
                 sensorDev = myqDevice.pluginProps["sensor"]
             except (Exception,):
@@ -273,7 +277,7 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, origDev, newDev):
         indigo.PluginBase.deviceUpdated(self, origDev, newDev)
 
-        for myqDeviceId, myqDevice in sorted(self.myqOpeners.iteritems()):
+        for myqDeviceId, myqDevice in sorted(self.myqOpeners.items()):
             try:
                 sensorDev = int(myqDevice.pluginProps["sensor"])
             except (Exception,):
@@ -334,8 +338,7 @@ class Plugin(indigo.PluginBase):
     ########################################
 
     def changeDeviceAction(self, pluginAction):
-        self.logger.debug(
-            f"changeDeviceAction, deviceId = {pluginAction.deviceId}, actionId = {pluginAction.pluginTypeId}")
+        self.logger.debug(f"changeDeviceAction, deviceId = {pluginAction.deviceId}, actionId = {pluginAction.pluginTypeId}")
 
         if pluginAction is not None:
             myqDevice = indigo.devices[pluginAction.deviceId]
@@ -360,8 +363,8 @@ class Plugin(indigo.PluginBase):
 
             await api.update_device_info()
 
-            for account in api.accounts:
-                self.logger.debug(f"requestUpdate: account ID = {account.id}, name = {account.name}")
+            for account_id, account in api.accounts.items():
+                self.logger.debug(f"requestUpdate: account ID = {account_id}, name = {account.name}")
 
             for device_id in api.devices:
                 device_json = api.devices[device_id].device_json
@@ -416,26 +419,26 @@ class Plugin(indigo.PluginBase):
                 self.logger.warning(f"Error logging into MyQ server: {err}")
                 return
 
-        device = api.devices[myqid]
-        if not device.open_allowed:
-            self.logger.warning(f"Opening of '{device.name}' is not allowed.")
+            device = api.devices[myqid]
+            if not device.open_allowed:
+                self.logger.warning(f"Opening of '{device.name}' is not allowed.")
+                return
+
+            if device.state == STATE_OPEN:
+                self.logger.info(f"'{device.name}' is already open.")
+                return
+
+            try:
+                wait_task = await device.open(wait_for_state=False)
+            except MyQError as err:
+                self.logger.error(f"Error trying to open '{device.name}': {err}")
+                return
+
+            if not await wait_task:
+                self.logger.warning(f"Failed to open '{device.name}'.")
+
+            self.device_info[myqID] = api.devices[device.device_id]
             return
-
-        if device.state == STATE_OPEN:
-            self.logger.info(f"'{device.name}' is already open.")
-            return
-
-        try:
-            wait_task = await device.open(wait_for_state=False)
-        except MyQError as err:
-            self.logger.error(f"Error trying to open '{device.name}': {str(err)}")
-            return
-
-        if not await wait_task:
-            self.logger.warning(f"Failed to open '{device.name}'.")
-
-        self.device_info[myqID] = api.devices[device.device_id]
-        return
 
     async def pymyq_close(self, myqid):
         async with ClientSession() as web_session:
@@ -445,26 +448,26 @@ class Plugin(indigo.PluginBase):
                 self.logger.warning(f"Error logging into MyQ server: {err}")
                 return
 
-        device = api.devices[myqid]
-        if not device.close_allowed:
-            self.logger.warning(f"Closing of '{device.name}' is not allowed.")
+            device = api.devices[myqid]
+            if not device.close_allowed:
+                self.logger.warning(f"Closing of '{device.name}' is not allowed.")
+                return
+
+            if device.state == STATE_CLOSED:
+                self.logger.info(f"'{device.name}' is already closed.")
+                return
+
+            try:
+                wait_task = await device.close(wait_for_state=False)
+            except MyQError as err:
+                self.logger.error(f"Error trying to close '{device.name}': {err}")
+                return
+
+            if not await wait_task:
+                self.logger.warning(f"Failed to close '{device.name}'.")
+
+            self.device_info[myqid] = api.devices[device.device_id]
             return
-
-        if device.state == STATE_CLOSED:
-            self.logger.info(f"'{device.name}' is already closed.")
-            return
-
-        try:
-            wait_task = await device.close(wait_for_state=False)
-        except MyQError as err:
-            self.logger.error(f"Error trying to close '{device.name}': {str(err)}")
-            return
-
-        if not await wait_task:
-            self.logger.warning(f"Failed to close '{device.name}'.")
-
-        self.device_info[myqid] = api.devices[device.device_id]
-        return
 
     async def pymyq_turnon(self, myqid):
         async with ClientSession() as web_session:
@@ -478,7 +481,7 @@ class Plugin(indigo.PluginBase):
             try:
                 wait_task = await device.turnon(wait_for_state=False)
             except MyQError as err:
-                self.logger.error(f"Error trying to turn on '{device.name}': {str(err)}")
+                self.logger.error(f"Error trying to turn on '{device.name}': {err}")
                 return
 
             if not await wait_task:
@@ -499,7 +502,7 @@ class Plugin(indigo.PluginBase):
             try:
                 wait_task = await device.turnoff(wait_for_state=False)
             except MyQError as err:
-                self.logger.error(f"Error trying to turn off '{device.name}': {str(err)}")
+                self.logger.error(f"Error trying to turn off '{device.name}': {err}")
                 return
 
             if not await wait_task:
