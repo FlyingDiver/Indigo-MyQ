@@ -8,9 +8,12 @@ import logging
 import json
 
 import asyncio
-from aiohttp import ClientSession
-from pymyq import login
-from pymyq.errors import MyQError, RequestError
+try:
+    from pymyq import login
+    from pymyq.errors import MyQError, RequestError
+    from aiohttp import ClientSession
+except ImportError:
+    raise ImportError("'pymyq' library missing.  Run 'pip3 install pymyq' in Terminal window")
 
 kCurDevVersCount = 2  # current version of plugin devices
 
@@ -362,9 +365,8 @@ class Plugin(indigo.PluginBase):
                 return
 
             await api.update_device_info()
-
-            for account_id, account in api.accounts.items():
-                self.logger.debug(f"requestUpdate: account ID = {account_id}, name = {account.name}")
+            self.logger.debug(f"pymyq_update: api.accounts = {api.accounts}")
+            self.logger.debug(f"pymyq_update: api.devices = {api.devices}")
 
             for device_id in api.devices:
                 device_json = api.devices[device_id].device_json
@@ -436,8 +438,7 @@ class Plugin(indigo.PluginBase):
 
             if not await wait_task:
                 self.logger.warning(f"Failed to open '{device.name}'.")
-
-            self.device_info[myqID] = api.devices[device.device_id]
+            self.needsUpdate = True
             return
 
     async def pymyq_close(self, myqid):
@@ -465,8 +466,7 @@ class Plugin(indigo.PluginBase):
 
             if not await wait_task:
                 self.logger.warning(f"Failed to close '{device.name}'.")
-
-            self.device_info[myqid] = api.devices[device.device_id]
+            self.needsUpdate = True
             return
 
     async def pymyq_turnon(self, myqid):
@@ -486,8 +486,7 @@ class Plugin(indigo.PluginBase):
 
             if not await wait_task:
                 self.logger.warning(f"Failed to turn on '{device.name}'.")
-
-            self.device_info[myqid] = api.devices[device.device_id]
+            self.needsUpdate = True
             return
 
     async def pymyq_turnoff(self, myqid):
@@ -507,6 +506,5 @@ class Plugin(indigo.PluginBase):
 
             if not await wait_task:
                 self.logger.warning(f"Failed to turn off '{device.name}'.")
-
-            self.device_info[myqid] = api.devices[device.device_id]
+            self.needsUpdate = True
             return
