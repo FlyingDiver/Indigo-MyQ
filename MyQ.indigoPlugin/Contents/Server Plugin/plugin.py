@@ -13,7 +13,7 @@ try:
     from pymyq.errors import MyQError, RequestError
     from aiohttp import ClientSession
 except ImportError:
-    raise ImportError("'pymyq' library missing.  Run 'pip3 install pymyq' in Terminal window")
+    raise ImportError("'Required Python libraries missing.  Run 'pip3 install pymyq==3.0.4' in Terminal window, then reload plugin.")
 
 kCurDevVersCount = 2  # current version of plugin devices
 

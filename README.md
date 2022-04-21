@@ -22,6 +22,6 @@ This plugin uses the Indigo "Lock" device type.  So a closed door is "Locked" an
 
 ## Installation Instructions
 
-In Terminal.app enter:
+Before installing the plugin - in Terminal.app enter:
 
 `pip3 install pymyq==3.0.4`
