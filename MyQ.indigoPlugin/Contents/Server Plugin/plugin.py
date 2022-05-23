@@ -11,9 +11,13 @@ import asyncio
 try:
     from pymyq import login
     from pymyq.errors import MyQError, RequestError
+    from pymyq.__version__ import __version__
     from aiohttp import ClientSession
 except ImportError:
-    raise ImportError("'Required Python libraries missing.  Run 'pip3 install pymyq==3.0.4' in Terminal window, then reload plugin.")
+    raise ImportError("'Required Python libraries missing.  Run 'pip3 install pymyq==3.1.5' in Terminal window, then reload plugin.")
+
+if __version__ != "3.1.5":
+    raise ImportError("'Wrong version of MyQ library installed.  Run 'pip3 install pymyq==3.1.5' in Terminal window, then reload plugin.")
 
 kCurDevVersCount = 2  # current version of plugin devices
 
@@ -36,7 +40,7 @@ class Plugin(indigo.PluginBase):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 
-        self.logLevel = int(pluginPrefs.get(u"logLevel", logging.INFO))
+        self.logLevel = int(pluginPrefs.get("logLevel", logging.INFO))
         self.indigo_log_handler.setLevel(self.logLevel)
         log_format = logging.Formatter('%(asctime)s.%(msecs)03d\t[%(levelname)8s] %(name)20s.%(funcName)-25s%(msg)s',
                                        datefmt='%Y-%m-%d %H:%M:%S')
