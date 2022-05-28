@@ -4,7 +4,6 @@
         <Name>MyQ Door Opener</Name>
         <ConfigUI>
             <Field type="checkbox" id="IsLockSubType" hidden="true" defaultValue="true" />
-            <Field type="textfield" id="myqID" hidden="true" />  
             <Field id="address" type="menu">
                 <Label>MyQ Opener Device:</Label>
                 <List class="self" filter="garagedoor" method="availableDeviceList"/>
@@ -39,7 +38,6 @@
     <Device type="relay" id="myqLight">
         <Name>MyQ Light</Name>
         <ConfigUI>
-            <Field type="textfield" id="myqID" hidden="true" />  
             <Field id="address" type="menu">
                 <Label>MyQ Light Device:</Label>
                 <List class="self" filter="lamp" method="availableDeviceList"/>

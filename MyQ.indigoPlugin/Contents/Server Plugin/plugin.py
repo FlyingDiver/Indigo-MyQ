@@ -47,7 +47,6 @@ class Plugin(indigo.PluginBase):
         self.plugin_file_handler.setFormatter(log_format)
         self.logger.debug(f"logLevel = {self.logLevel}")
 
-        self.loginOK = False
         self.needsUpdate = False
         self.triggers = {}
         self.myqOpeners = {}
@@ -85,7 +84,7 @@ class Plugin(indigo.PluginBase):
         if device.deviceTypeId == 'myqOpener':
 
             myqID = device.pluginProps.get("myqID", None)
-            if myqID != device.address:
+            if not device.address and myqID:
                 newProps = device.pluginProps
                 newProps["address"] = myqID
                 device.replacePluginPropsOnServer(newProps)
@@ -176,6 +175,18 @@ class Plugin(indigo.PluginBase):
     ########################################
     # ConfigUI methods
     ########################################
+
+    def validateDeviceConfigUi(self, valuesDict, typeId, devId):
+        self.logger.debug(f"validateDeviceConfigUi, valuesDict = {valuesDict}")
+        errorsDict = indigo.Dict()
+
+        if not valuesDict['address']:
+            errorsDict['address'] = "Invalid Device"
+            self.logger.warning(f"validateDeviceConfigUi: invalid device ID")
+
+        if len(errorsDict) > 0:
+            return False, valuesDict, errorsDict
+        return True, valuesDict
 
     def validatePrefsConfigUi(self, valuesDict):
         self.logger.debug("validatePrefsConfigUi called")
@@ -337,7 +348,7 @@ class Plugin(indigo.PluginBase):
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
             self.logger.debug("actionControlDevice: Request Status")
-            asyncio.run(self.pymyq_update())
+            asyncio.get_event_loop().run(self.pymyq_update())
 
         else:
             self.logger.error(f"actionControlDevice: Unsupported action requested: {action} for {dev.name}")
@@ -369,15 +380,13 @@ class Plugin(indigo.PluginBase):
                 return
 
             await api.update_device_info()
-            self.logger.debug(f"pymyq_update: api.accounts = {api.accounts}")
-            self.logger.debug(f"pymyq_update: api.devices = {api.devices}")
 
             for device_id in api.devices:
                 device_json = api.devices[device_id].device_json
                 name = device_json['name']
                 myqID = device_json['serial_number']
                 family = device_json['device_family']
-                self.logger.debug(f"requestUpdate: got {name} - {family} ({myqID})")
+                self.logger.debug(f"pymyq_update: got {name} - {family} ({myqID})")
                 self.device_info[myqID] = device_json
 
                 if family == 'garagedoor':
