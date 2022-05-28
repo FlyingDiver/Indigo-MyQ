@@ -7,10 +7,14 @@
             <Field id="address" type="menu">
                 <Label>MyQ Opener Device:</Label>
                 <List class="self" filter="garagedoor" method="availableDeviceList"/>
-            </Field>            
+            </Field>
+            <Field id="use_sensor" type="checkbox" defaultValue="false">
+				<Label>Use Door Sensor:</Label>
+				<Description>Use door device to update door state</Description>
+			</Field>
 			<Field id="sensor" type="menu" >
 				<Label>Linked Sensor Device:</Label>
-				<List class="indigo.devices" filter="indigo.sensor, indigo.iodevice" />
+				<List class="indigo.devices" filter="indigo.sensor, indigo.iodevice"/>
 			</Field>
         </ConfigUI>
         <States>

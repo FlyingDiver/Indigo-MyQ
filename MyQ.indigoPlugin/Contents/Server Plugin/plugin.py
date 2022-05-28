@@ -8,6 +8,7 @@ import logging
 import json
 
 import asyncio
+
 try:
     from pymyq import login
     from pymyq.errors import MyQError, RequestError
@@ -99,10 +100,19 @@ class Plugin(indigo.PluginBase):
                 newProps["devVersCount"] = kCurDevVersCount
                 device.replacePluginPropsOnServer(newProps)
                 device.stateListOrDisplayStateIdChanged()
-                self.logger.debug(
-                    f"{device.name}: deviceStartComm: Updated to device version {kCurDevVersCount}, props = {newProps}")
+                self.logger.debug(f"{device.name}: deviceStartComm: Updated to device version {kCurDevVersCount}, props = {newProps}")
             else:
                 self.logger.error(f"{device.name}: deviceStartComm: Unknown device version: {instanceVers}")
+
+            newProps = device.pluginProps
+            if device.pluginProps.get("use_sensor", -1) == -1:      # old device
+                if device.pluginProps.get("sensor", None):
+                    newProps['use_sensor'] = True
+                else:
+                    newProps['use_sensor'] = False
+            elif not device.pluginProps.get("use_sensor"):
+                newProps['sensor'] = None
+            device.replacePluginPropsOnServer(newProps)
 
             self.logger.debug(f"{device.name}: deviceStartComm: Adding device ({device.id}) to self.myqOpeners")
             assert device.id not in self.myqOpeners
@@ -187,6 +197,15 @@ class Plugin(indigo.PluginBase):
         if len(errorsDict) > 0:
             return False, valuesDict, errorsDict
         return True, valuesDict
+
+    def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, devId):
+        if not userCancelled:
+            try:
+                self.logLevel = int(valuesDict[u"logLevel"])
+            except (Exception,):
+                self.logLevel = logging.INFO
+            self.indigo_log_handler.setLevel(self.logLevel)
+            self.logger.debug(f"logLevel = {self.logLevel}")
 
     def validatePrefsConfigUi(self, valuesDict):
         self.logger.debug("validatePrefsConfigUi called")
