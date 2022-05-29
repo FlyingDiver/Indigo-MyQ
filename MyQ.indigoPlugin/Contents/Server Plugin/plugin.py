@@ -367,7 +367,7 @@ class Plugin(indigo.PluginBase):
 
         elif action.deviceAction == indigo.kDeviceAction.RequestStatus:
             self.logger.debug("actionControlDevice: Request Status")
-            asyncio.get_event_loop().run(self.pymyq_update())
+            asyncio.run(self.pymyq_update())
 
         else:
             self.logger.error(f"actionControlDevice: Unsupported action requested: {action} for {dev.name}")
