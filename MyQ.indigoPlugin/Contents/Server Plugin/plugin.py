@@ -15,10 +15,10 @@ try:
     from pymyq.__version__ import __version__
     from aiohttp import ClientSession
 except ImportError:
-    raise ImportError("'Required Python libraries missing.  Run 'pip3 install pymyq==3.1.5' in Terminal window, then reload plugin.")
+    raise ImportError("'Required Python libraries missing.  Run 'pip3 install pymyq==3.1.6' in Terminal window, then reload plugin.")
 
-if __version__ != "3.1.5":
-    raise ImportError("'Wrong version of MyQ library installed.  Run 'pip3 install pymyq==3.1.5' in Terminal window, then reload plugin.")
+if __version__ != "3.1.6":
+    raise ImportError("'Wrong version of MyQ library installed.  Run 'pip3 install pymyq==3.1.6' in Terminal window, then reload plugin.")
 
 kCurDevVersCount = 2  # current version of plugin devices
 
